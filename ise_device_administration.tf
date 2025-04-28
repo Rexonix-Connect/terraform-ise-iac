@@ -80,10 +80,6 @@ resource "ise_device_admin_policy_set" "device_admin_policy_set" {
     operator = try(i.operator, null),
     children = try(i.children, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -200,10 +196,6 @@ resource "ise_tacacs_profile" "tacacs_profile" {
     name = try(i.name, null),
     value = try(i.value, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -241,10 +233,6 @@ resource "ise_device_admin_policy_set_update_ranks" "device_admin_policy_set_upd
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -309,10 +297,6 @@ resource "ise_device_admin_condition" "device_admin_condition" {
     operator = try(i.operator, null),
     children = try(i.children, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -391,10 +375,6 @@ resource "ise_device_admin_authentication_rule" "device_admin_authentication_rul
   if_auth_fail = try(each.value.if_auth_fail, null)
   if_process_fail = try(each.value.if_process_fail, null)
   if_user_not_found = try(each.value.if_user_not_found, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -470,10 +450,6 @@ resource "ise_device_admin_authorization_global_exception_rule_update_ranks" "de
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -512,10 +488,6 @@ resource "ise_allowed_protocols_tacacs" "allowed_protocols_tacacs" {
   allow_pap_ascii = try(each.value.allow_pap_ascii, null)
   allow_chap = try(each.value.allow_chap, null)
   allow_ms_chap_v1 = try(each.value.allow_ms_chap_v1, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -593,10 +565,6 @@ resource "ise_device_admin_authorization_exception_rule_update_ranks" "device_ad
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -707,10 +675,6 @@ resource "ise_device_admin_authorization_exception_rule" "device_admin_authoriza
   }], null)
   command_sets = try(each.value.command_sets, null)
   profile = try(each.value.profile, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -755,10 +719,6 @@ resource "ise_tacacs_command_set" "tacacs_command_set" {
     command = try(i.command, null),
     arguments = try(i.arguments, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -798,10 +758,6 @@ resource "ise_device_admin_authentication_rule_update_ranks" "device_admin_authe
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -872,10 +828,6 @@ resource "ise_device_admin_authorization_global_exception_rule" "device_admin_au
   }], null)
   command_sets = try(each.value.command_sets, null)
   profile = try(each.value.profile, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -950,10 +902,6 @@ resource "ise_device_admin_authorization_rule" "device_admin_authorization_rule"
   }], null)
   command_sets = try(each.value.command_sets, null)
   profile = try(each.value.profile, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -993,10 +941,6 @@ resource "ise_device_admin_authorization_rule_update_ranks" "device_admin_author
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1051,8 +995,4 @@ resource "ise_device_admin_time_and_date_condition" "device_admin_time_and_date_
   end_time = try(each.value.end_time, null)
   exception_start_time = try(each.value.exception_start_time, null)
   exception_end_time = try(each.value.exception_end_time, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }

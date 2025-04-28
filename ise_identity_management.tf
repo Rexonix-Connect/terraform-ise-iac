@@ -48,10 +48,6 @@ resource "ise_certificate_authentication_profile" "certificate_authentication_pr
   certificate_attribute_name = try(each.value.certificate_attribute_name, null)
   match_mode = try(each.value.match_mode, null)
   username_from = try(each.value.username_from, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -97,10 +93,6 @@ resource "ise_identity_source_sequence" "identity_source_sequence" {
     name = try(i.name, null),
     order = try(i.order, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -181,10 +173,6 @@ resource "ise_endpoint" "endpoint" {
   mdm_jail_broken = try(each.value.mdm_jail_broken, null)
   mdm_imei = try(each.value.mdm_imei, null)
   mdm_phone_number = try(each.value.mdm_phone_number, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -224,10 +212,6 @@ resource "ise_active_directory_join_domain_with_all_nodes" "active_directory_joi
     name = try(i.name, null),
     value = try(i.value, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -322,10 +306,6 @@ resource "ise_user_identity_group" "user_identity_group" {
   name = try(each.value.name, null)
   description = try(each.value.description, null)
   parent = try(each.value.parent, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -445,10 +425,6 @@ resource "ise_active_directory_join_point" "active_directory_join_point" {
   enable_failed_auth_protection = try(each.value.enable_failed_auth_protection, null)
   failed_auth_threshold = try(each.value.failed_auth_threshold, null)
   auth_protection_type = try(each.value.auth_protection_type, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -499,10 +475,6 @@ resource "ise_active_directory_add_groups" "active_directory_add_groups" {
     sid = try(i.sid, null),
     type = try(i.type, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -539,8 +511,4 @@ resource "ise_endpoint_identity_group" "endpoint_identity_group" {
   description = try(each.value.description, null)
   system_defined = try(each.value.system_defined, null)
   parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }

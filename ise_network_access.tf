@@ -292,10 +292,6 @@ resource "ise_network_access_condition" "network_access_condition" {
     operator = try(i.operator, null),
     children = try(i.children, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -350,10 +346,6 @@ resource "ise_network_access_time_and_date_condition" "network_access_time_and_d
   end_time = try(each.value.end_time, null)
   exception_start_time = try(each.value.exception_start_time, null)
   exception_end_time = try(each.value.exception_end_time, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -393,10 +385,6 @@ resource "ise_network_access_authorization_exception_rule_update_ranks" "network
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -475,10 +463,6 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
   if_auth_fail = try(each.value.if_auth_fail, null)
   if_process_fail = try(each.value.if_process_fail, null)
   if_user_not_found = try(each.value.if_user_not_found, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -515,10 +499,6 @@ resource "ise_downloadable_acl" "downloadable_acl" {
   description = try(each.value.description, null)
   dacl = try(each.value.dacl, null)
   dacl_type = try(each.value.dacl_type, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -631,10 +611,6 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
     operator = try(i.operator, null),
     children = try(i.children, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -709,10 +685,6 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
   }], null)
   profiles = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -786,10 +758,6 @@ resource "ise_network_access_policy_set_update_ranks" "network_access_policy_set
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -895,10 +863,6 @@ resource "ise_authorization_profile" "authorization_profile" {
   }], null)
   ipv6_dacl_name = try(each.value.ipv6_dacl_name, null)
   airespace_ipv6_acl = try(each.value.airespace_ipv6_acl, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -969,10 +933,6 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
   }], null)
   profiles = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1009,10 +969,6 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
   description = try(each.value.description, null)
   version = try(each.value.version, null)
   dictionary_attr_type = try(each.value.dictionary_attr_type, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1052,10 +1008,6 @@ resource "ise_network_access_authentication_rule_update_ranks" "network_access_a
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1095,10 +1047,6 @@ resource "ise_network_access_authorization_rule_update_ranks" "network_access_au
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1211,10 +1159,6 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
   }], null)
   profiles = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -1252,10 +1196,6 @@ resource "ise_network_access_authorization_global_exception_rule_update_ranks" "
     id = try(i.id, null),
     rank = try(i.rank, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================

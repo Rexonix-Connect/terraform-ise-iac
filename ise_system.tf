@@ -43,10 +43,6 @@ resource "ise_license_tier_state" "license_tier_state" {
     name = try(i.name, null),
     status = try(i.status, null)
   }], null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================

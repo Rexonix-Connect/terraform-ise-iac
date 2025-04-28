@@ -46,10 +46,6 @@ resource "ise_trustsec_egress_matrix_cell" "trustsec_egress_matrix_cell" {
   sgacls = try(each.value.sgacls, null)
   source_sgt_id = try(each.value.source_sgt_id, null)
   destination_sgt_id = try(each.value.destination_sgt_id, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -94,10 +90,6 @@ resource "ise_trustsec_ip_to_sgt_mapping" "trustsec_ip_to_sgt_mapping" {
   host_ip = try(each.value.host_ip, null)
   sgt = try(each.value.sgt, null)
   mapping_group = try(each.value.mapping_group, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -136,10 +128,6 @@ resource "ise_trustsec_ip_to_sgt_mapping_group" "trustsec_ip_to_sgt_mapping_grou
   deploy_to = try(each.value.deploy_to, null)
   deploy_type = try(each.value.deploy_type, null)
   sgt = try(each.value.sgt, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
 #
 # ==================================================================
@@ -304,8 +292,4 @@ resource "ise_trustsec_egress_matrix_cell_default" "trustsec_egress_matrix_cell_
   default_rule = try(each.value.default_rule, null)
   matrix_cell_status = try(each.value.matrix_cell_status, null)
   sgacls = try(each.value.sgacls, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }

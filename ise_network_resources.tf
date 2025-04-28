@@ -164,8 +164,4 @@ resource "ise_network_device_group" "network_device_group" {
   name = try(each.value.name, null)
   description = try(each.value.description, null)
   root_group = try(each.value.root_group, null)
-  
-  lifecycle {
-    ignore_changes = []
-  }
 }
