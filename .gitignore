@@ -1,0 +1,17 @@
+# Virtual environments
+.venv/
+
+# Terraform meta files
+.terraform/
+.terraform.lock.hcl
+terraform.tfstate
+terraform.tfstate.backup
+terraform.tfvars
+
+# Provider source code
+gen/terraform-provider-ise/
+
+# Examples
+examples/*
+!examples/auto-generated/
+!examples/auto-generated/terraform.tfvars

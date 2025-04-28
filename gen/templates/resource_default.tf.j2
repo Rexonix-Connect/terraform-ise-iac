@@ -1,0 +1,67 @@
+#
+# ==================================================================
+# {{ resource.name | replace("_", " ") | upper() }} 
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+{% for attr in resource.definition.processed_attributes %}
+# | {{ attr.name }} | {{ attr.type }} | {{ attr.mandatory | default("False") }} | {{ attr.description | default("") }} |
+{% endfor %}
+#
+
+locals {
+  # Get defaults from configuration or empty map if not present
+  defaults_{{ resource.name }} = try(local.defaults.ise.{{ category }}.{{ resource.name }}, {})
+
+  # {{ resource.name | replace("_", " ") | title }} (with defaults)
+  {{ resource.name }} = [for item in try(local.ise.{{ category }}.{{ resource.name }}, []) : merge(
+    local.defaults_{{ resource.name }}, # defaults
+    item, # original item
+    { # Nested merges for complex attributes
+{% for attr in resource.definition.processed_attributes %}
+{% if attr.nested_attributes %}
+      {{ attr.name }} = [for i in try(item.{{ attr.name }}, []) : merge(
+        try(local.defaults_{{ resource.name }}.{{ attr.name }}, {}),
+        i
+      )]
+{% endif %}
+{% endfor %}
+    }
+  )]
+}
+
+# Create {{ resource.name | replace("_", " ") }}
+resource "ise_{{ resource.name }}" "{{ resource.name }}" {
+  for_each = { for item in try(local.{{ resource.name }}, []) : item.name => item }
+
+  # General attributes
+{% for attr in resource.definition.processed_attributes %}
+{% if not attr.nested_attributes %}
+{% if attr.sensitive %}
+  {{ attr.name }} = sensitive(try(each.value.{{ attr.name }}, null))
+{% else %}
+  {{ attr.name }} = try(each.value.{{ attr.name }}, null)
+{% endif %}
+{% else %}
+  {{ attr.name }} = try([for i in each.value.{{ attr.name }} : {
+{% for nested_attr in attr.nested_attributes %}
+{% if nested_attr.sensitive %}
+    {{ nested_attr.name }} = sensitive(try(i.{{ nested_attr.name }}, null)){% if not loop.last %},{% endif %}
+{% else %}
+    {{ nested_attr.name }} = try(i.{{ nested_attr.name }}, null){% if not loop.last %},{% endif %}
+{% endif %}
+
+{% endfor %}
+  }], null)
+{% endif %}
+{% endfor %}
+  
+  lifecycle {
+    ignore_changes = [
+{%- for attr in resource.definition.ignore_changes_attributes -%}
+      {{ attr }}{% if not loop.last %},{% endif %}
+{%- endfor -%}
+    ]
+  }
+}
