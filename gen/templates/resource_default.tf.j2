@@ -61,7 +61,7 @@ resource "ise_{{ resource.name }}" "{{ resource.name }}" {
   lifecycle {
     ignore_changes = [
 {%- for attr in resource.definition.ignore_changes_attributes -%}
-      {{ attr }}{% if not loop.last %},{% endif %}
+      {{ attr }}{% if not loop.last %}, {% endif %}
 {%- endfor -%}
     ]
   }

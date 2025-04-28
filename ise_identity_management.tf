@@ -270,7 +270,7 @@ resource "ise_internal_user" "internal_user" {
   description = try(each.value.description, null)
   
   lifecycle {
-    ignore_changes = [password,enable_password]
+    ignore_changes = [password, enable_password]
   }
 }
 #
