@@ -17,3 +17,6 @@ examples/*
 !examples/auto-generated/terraform.tfvars
 
 !examples/references/
+
+# Python
+__pycache__/

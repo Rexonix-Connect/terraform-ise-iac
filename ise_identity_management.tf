@@ -41,7 +41,7 @@ locals {
 resource "ise_active_directory_add_groups" "active_directory_add_groups" {
   for_each = { for item in local.active_directory_add_groups : try(item.name, item.join_point_id, "") => item }
 
-  join_point_id              = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.name, null) != null ? local.active_directory_join_point_ids[each.value.name] : null
+  join_point_id              = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.name, null) != null ? lookup(local.active_directory_join_point_ids, each.value.name, null) : null
   name                       = try(each.value.name, null)
   description                = try(each.value.description, null)
   domain                     = try(each.value.domain, null)
@@ -84,7 +84,7 @@ locals {
 resource "ise_active_directory_join_domain_with_all_nodes" "active_directory_join_domain_with_all_nodes" {
   for_each = { for item in local.active_directory_join_domain_with_all_nodes : try(item.join_point_name, item.join_point_id, "") => item }
 
-  join_point_id = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.join_point_name, null) != null ? local.active_directory_join_point_ids[each.value.join_point_name] : null
+  join_point_id = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.join_point_name, null) != null ? lookup(local.active_directory_join_point_ids, each.value.join_point_name, null) : null
   additional_data = try(each.value.additional_data, null) == null ? null : [for i1 in each.value.additional_data : {
     name  = try(i1.name, null)
     value = try(i1.value, null)
@@ -218,7 +218,18 @@ locals {
     [for item in local.active_directory_add_groups : [for v0 in [item] : try(v0.name, null) if try(v0.join_point_id, null) == null]],
     [for item in local.active_directory_join_domain_with_all_nodes : [for v0 in [item] : try(v0.join_point_name, null) if try(v0.join_point_id, null) == null]],
   ])))
-  active_directory_join_point_managed_names = [for item in local.active_directory_join_point : item.name]
+  active_directory_join_point_managed_names   = [for item in local.active_directory_join_point : item.name]
+  active_directory_join_point_unmanaged_names = [for n in local.active_directory_join_point_referenced_names : n if !contains(local.active_directory_join_point_managed_names, n)]
+}
+
+# The provider cannot look up active directory join point objects by name
+resource "terraform_data" "active_directory_join_point_references" {
+  lifecycle {
+    precondition {
+      condition     = length(local.active_directory_join_point_unmanaged_names) == 0
+      error_message = "Active directory join point objects not managed by this module must be referred to by ID, not by name: ${join(", ", local.active_directory_join_point_unmanaged_names)}"
+    }
+  }
 }
 
 locals {
@@ -486,11 +497,12 @@ locals {
     [for item in local.endpoint : [for v0 in [item] : try(v0.group_name, null) if try(v0.group_id, null) == null]],
     [for item in local.endpoint_identity_group : [for v0 in [item] : try(v0.parent_endpoint_identity_group_name, null) if try(v0.parent_endpoint_identity_group_id, null) == null]],
   ])))
-  endpoint_identity_group_managed_names = [for item in local.endpoint_identity_group : item.name]
+  endpoint_identity_group_managed_names   = [for item in local.endpoint_identity_group : item.name]
+  endpoint_identity_group_unmanaged_names = [for n in local.endpoint_identity_group_referenced_names : n if !contains(local.endpoint_identity_group_managed_names, n)]
 }
 
 data "ise_endpoint_identity_group" "endpoint_identity_group" {
-  for_each = toset([for n in local.endpoint_identity_group_referenced_names : n if !contains(local.endpoint_identity_group_managed_names, n)])
+  for_each = toset(local.endpoint_identity_group_unmanaged_names)
 
   name = each.key
 }
@@ -669,11 +681,12 @@ locals {
   user_identity_group_referenced_names = distinct(compact(flatten([
     [for item in local.internal_user : [for v0 in [item] : try(v0.identity_group_names, []) if try(v0.identity_groups, null) == null]],
   ])))
-  user_identity_group_managed_names = [for item in local.user_identity_group : item.name]
+  user_identity_group_managed_names   = [for item in local.user_identity_group : item.name]
+  user_identity_group_unmanaged_names = [for n in local.user_identity_group_referenced_names : n if !contains(local.user_identity_group_managed_names, n)]
 }
 
 data "ise_user_identity_group" "user_identity_group" {
-  for_each = toset([for n in local.user_identity_group_referenced_names : n if !contains(local.user_identity_group_managed_names, n)])
+  for_each = toset(local.user_identity_group_unmanaged_names)
 
   name = each.key
 }
@@ -700,11 +713,12 @@ locals {
   profiler_profile_referenced_names = distinct(compact(flatten([
     [for item in local.endpoint : [for v0 in [item] : try(v0.profile_name, null) if try(v0.profile_id, null) == null]],
   ])))
-  profiler_profile_managed_names = []
+  profiler_profile_managed_names   = []
+  profiler_profile_unmanaged_names = [for n in local.profiler_profile_referenced_names : n if !contains(local.profiler_profile_managed_names, n)]
 }
 
 data "ise_profiler_profile" "profiler_profile" {
-  for_each = toset([for n in local.profiler_profile_referenced_names : n if !contains(local.profiler_profile_managed_names, n)])
+  for_each = toset(local.profiler_profile_unmanaged_names)
 
   name = each.key
 }

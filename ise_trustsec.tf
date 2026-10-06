@@ -382,11 +382,12 @@ locals {
   trustsec_ip_to_sgt_mapping_group_referenced_names = distinct(compact(flatten([
     [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.mapping_group_name, null) if try(v0.mapping_group, null) == null]],
   ])))
-  trustsec_ip_to_sgt_mapping_group_managed_names = [for item in local.trustsec_ip_to_sgt_mapping_group : item.name]
+  trustsec_ip_to_sgt_mapping_group_managed_names   = [for item in local.trustsec_ip_to_sgt_mapping_group : item.name]
+  trustsec_ip_to_sgt_mapping_group_unmanaged_names = [for n in local.trustsec_ip_to_sgt_mapping_group_referenced_names : n if !contains(local.trustsec_ip_to_sgt_mapping_group_managed_names, n)]
 }
 
 data "ise_trustsec_ip_to_sgt_mapping_group" "trustsec_ip_to_sgt_mapping_group" {
-  for_each = toset([for n in local.trustsec_ip_to_sgt_mapping_group_referenced_names : n if !contains(local.trustsec_ip_to_sgt_mapping_group_managed_names, n)])
+  for_each = toset(local.trustsec_ip_to_sgt_mapping_group_unmanaged_names)
 
   name = each.key
 }
@@ -454,11 +455,12 @@ locals {
   trustsec_matrix_referenced_names = distinct(compact(flatten([
     [for item in local.trustsec_egress_matrix_cell : [for v0 in [item] : try(v0.matrix_name, null) if try(v0.matrix_id, null) == null]],
   ])))
-  trustsec_matrix_managed_names = [for item in local.trustsec_matrix : item.name]
+  trustsec_matrix_managed_names   = [for item in local.trustsec_matrix : item.name]
+  trustsec_matrix_unmanaged_names = [for n in local.trustsec_matrix_referenced_names : n if !contains(local.trustsec_matrix_managed_names, n)]
 }
 
 data "ise_trustsec_matrix" "trustsec_matrix" {
-  for_each = toset([for n in local.trustsec_matrix_referenced_names : n if !contains(local.trustsec_matrix_managed_names, n)])
+  for_each = toset(local.trustsec_matrix_unmanaged_names)
 
   name = each.key
 }
@@ -529,11 +531,12 @@ locals {
     [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.sgt_name, null) if try(v0.sgt, null) == null]],
     [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.sgt_name, null) if try(v0.sgt, null) == null]],
   ])))
-  trustsec_security_group_managed_names = [for item in local.trustsec_security_group : item.name]
+  trustsec_security_group_managed_names   = [for item in local.trustsec_security_group : item.name]
+  trustsec_security_group_unmanaged_names = [for n in local.trustsec_security_group_referenced_names : n if !contains(local.trustsec_security_group_managed_names, n)]
 }
 
 data "ise_trustsec_security_group" "trustsec_security_group" {
-  for_each = toset([for n in local.trustsec_security_group_referenced_names : n if !contains(local.trustsec_security_group_managed_names, n)])
+  for_each = toset(local.trustsec_security_group_unmanaged_names)
 
   name = each.key
 }

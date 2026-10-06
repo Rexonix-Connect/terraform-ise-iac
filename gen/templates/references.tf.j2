@@ -20,13 +20,25 @@ locals {
 {% else %}
   {{ t }}_managed_names = []
 {% endif %}
+  {{ t }}_unmanaged_names = [for n in local.{{ t }}_referenced_names : n if !contains(local.{{ t }}_managed_names, n)]
 }
 {% if data_source %}
 
 data "ise_{{ t }}" "{{ t }}" {
-  for_each = toset([for n in local.{{ t }}_referenced_names : n if !contains(local.{{ t }}_managed_names, n)])
+  for_each = toset(local.{{ t }}_unmanaged_names)
 
   name = each.key
+}
+{% else %}
+
+# The provider cannot look up {{ t | replace("_", " ") }} objects by name
+resource "terraform_data" "{{ t }}_references" {
+  lifecycle {
+    precondition {
+      condition     = length(local.{{ t }}_unmanaged_names) == 0
+      error_message = "{{ t | replace("_", " ") | capitalize }} objects not managed by this module must be referred to by ID, not by name: ${join(", ", local.{{ t }}_unmanaged_names)}"
+    }
+  }
 }
 {% endif %}
 

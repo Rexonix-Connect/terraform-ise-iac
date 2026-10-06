@@ -287,6 +287,7 @@ class Reference:
     when: Dict[str, str] = field(default_factory=dict)
     recursive: bool = False
     comma_list: bool = False
+    name_lookup: bool = True  # unmanaged names are looked up in ISE
 
     def matches(self, lists: Tuple[str, ...]) -> bool:
         """Check if the reference applies to items of the given nested list path."""
@@ -458,7 +459,8 @@ def build_resources(
                 raise ValueError(
                     f"{resource.name}: target {ref.target} must be keyed by name"
                 )
-            if target is None and not has_name_data_source(definitions[ref.target]):
+            ref.name_lookup = has_name_data_source(definitions[ref.target])
+            if target is None and not ref.name_lookup:
                 raise ValueError(
                     f"{resource.name}: target {ref.target} is neither managed by "
                     "the module nor available as data source"
@@ -496,6 +498,9 @@ def reference_expr(ref: Reference, src: str, ids: str) -> str:
     conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
     if ref.comma_list:
         resolved = f'join(",", sort([for n in {name_value} : {ids}[n]]))'
+    elif not ref.name_lookup:
+        # unmanaged names fail the precondition of the target's references
+        resolved = f"lookup({ids}, {name_value}, null)"
     else:
         resolved = f"{ids}[{name_value}]"
     return (

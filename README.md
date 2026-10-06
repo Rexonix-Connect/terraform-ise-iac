@@ -50,7 +50,9 @@ ise:
 ISE objects often point to other objects by ID. In YAML they can point by name
 instead. The module turns the name into the ID of an object it creates, or looks
 the name up in ISE (for example built-in objects). An ID can still be given
-directly.
+directly. Active Directory join points are the exception: the provider cannot
+look them up by name, so a join point not managed by the module must be given
+by ID (`join_point_id`).
 
 | Resource | YAML key | Refers to |
 |----------|----------|-----------|

@@ -1072,11 +1072,12 @@ locals {
     [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
     [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
   ])))
-  device_admin_condition_managed_names = [for item in local.device_admin_condition : item.name]
+  device_admin_condition_managed_names   = [for item in local.device_admin_condition : item.name]
+  device_admin_condition_unmanaged_names = [for n in local.device_admin_condition_referenced_names : n if !contains(local.device_admin_condition_managed_names, n)]
 }
 
 data "ise_device_admin_condition" "device_admin_condition" {
-  for_each = toset([for n in local.device_admin_condition_referenced_names : n if !contains(local.device_admin_condition_managed_names, n)])
+  for_each = toset(local.device_admin_condition_unmanaged_names)
 
   name = each.key
 }
@@ -1272,11 +1273,12 @@ locals {
     [for item in local.device_admin_authorization_exception_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
     [for item in local.device_admin_authorization_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
   ])))
-  device_admin_policy_set_managed_names = [for item in local.device_admin_policy_set : item.name]
+  device_admin_policy_set_managed_names   = [for item in local.device_admin_policy_set : item.name]
+  device_admin_policy_set_unmanaged_names = [for n in local.device_admin_policy_set_referenced_names : n if !contains(local.device_admin_policy_set_managed_names, n)]
 }
 
 data "ise_device_admin_policy_set" "device_admin_policy_set" {
-  for_each = toset([for n in local.device_admin_policy_set_referenced_names : n if !contains(local.device_admin_policy_set_managed_names, n)])
+  for_each = toset(local.device_admin_policy_set_unmanaged_names)
 
   name = each.key
 }
