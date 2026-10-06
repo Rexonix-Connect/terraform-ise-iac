@@ -15,3 +15,5 @@ gen/terraform-provider-ise/
 examples/*
 !examples/auto-generated/
 !examples/auto-generated/terraform.tfvars
+
+!examples/references/
