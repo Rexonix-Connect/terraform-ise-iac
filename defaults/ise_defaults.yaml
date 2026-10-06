@@ -12,21 +12,11 @@ defaults:
     device_administration:
       allowed_protocols_tacacs: {}
       device_admin_authentication_rule: {}
-      device_admin_authentication_rule_update_rank: {}
-      device_admin_authentication_rule_update_ranks: {}
       device_admin_authorization_exception_rule: {}
-      device_admin_authorization_exception_rule_update_rank: {}
-      device_admin_authorization_exception_rule_update_ranks: {}
       device_admin_authorization_global_exception_rule: {}
-      device_admin_authorization_global_exception_rule_update_rank: {}
-      device_admin_authorization_global_exception_rule_update_ranks: {}
       device_admin_authorization_rule: {}
-      device_admin_authorization_rule_update_rank: {}
-      device_admin_authorization_rule_update_ranks: {}
       device_admin_condition: {}
       device_admin_policy_set: {}
-      device_admin_policy_set_update_rank: {}
-      device_admin_policy_set_update_ranks: {}
       device_admin_time_and_date_condition: {}
       tacacs_command_set:
         permit_unmatched: false
@@ -51,13 +41,13 @@ defaults:
         plaintext_auth: false
       certificate_authentication_profile:
         allowed_as_user_name: false
-        certificate_attribute_name: SUBJECT_COMMON_NAME
         external_identity_store_name: '[not applicable]'
         match_mode: NEVER
         username_from: CERTIFICATE
       endpoint:
         static_group_assignment_defined: true
         static_profile_assignment_defined: true
+      endpoint_custom_attribute: {}
       endpoint_identity_group: {}
       identity_source_sequence: {}
       internal_user:
@@ -79,40 +69,38 @@ defaults:
       downloadable_acl:
         dacl_type: IPV4
       network_access_authentication_rule: {}
-      network_access_authentication_rule_update_rank: {}
-      network_access_authentication_rule_update_ranks: {}
       network_access_authorization_exception_rule: {}
-      network_access_authorization_exception_rule_update_rank: {}
-      network_access_authorization_exception_rule_update_ranks: {}
       network_access_authorization_global_exception_rule: {}
-      network_access_authorization_global_exception_rule_update_rank: {}
-      network_access_authorization_global_exception_rule_update_ranks: {}
       network_access_authorization_rule: {}
-      network_access_authorization_rule_update_rank: {}
-      network_access_authorization_rule_update_ranks: {}
       network_access_condition: {}
       network_access_dictionary: {}
+      network_access_dictionary_attribute: {}
       network_access_policy_set: {}
-      network_access_policy_set_update_rank: {}
-      network_access_policy_set_update_ranks: {}
       network_access_time_and_date_condition: {}
     network_resources:
       network_device:
-        coa_port: 1700
         profile_name: Cisco
       network_device_group: {}
     system:
       license_tier_state: {}
       repository: {}
     trustsec:
+      sxp_connection: {}
       sxp_domain_filter: {}
+      sxp_local_binding: {}
+      sxp_vpn: {}
       trustsec_egress_matrix_cell:
         default_rule: NONE
         matrix_cell_status: DISABLED
       trustsec_egress_matrix_cell_default:
         matrix_cell_status: DISABLED
+      trustsec_egress_push_matrix:
+        force: false
       trustsec_ip_to_sgt_mapping: {}
       trustsec_ip_to_sgt_mapping_group: {}
+      trustsec_matrix: {}
       trustsec_security_group: {}
       trustsec_security_group_acl:
         ip_version: IP_AGNOSTIC
+      trustsec_work_process_settings:
+        enable_approval_workflow: false

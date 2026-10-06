@@ -11,36 +11,27 @@ locals {
   ]
   # input from model string
   model_strings = length(keys(var.model)) != 0 ? [yamlencode(var.model)] : []
-  # user defaults merged with module defaults in data.utils_deep_merge_yaml.defaults below
-  # these defaults are part of user provided model data under root key "defaults"
-  user_defaults = { "defaults" : try(yamldecode(data.utils_deep_merge_yaml.model.output)["defaults"], {}) }
-  # output of data.utils_deep_merge_yaml.defaults below
-  defaults      = yamldecode(data.utils_deep_merge_yaml.defaults.output)["defaults"]
-  # output of data.utils_deep_merge_yaml.model.output below
-  model         = yamldecode(data.utils_deep_merge_yaml.model.output)
-}
-
-# Merge all model sources into a single model
-data "utils_deep_merge_yaml" "model" {
-  input = concat( # join lists into one
+  # all model sources merged into a single model
+  model = yamldecode(provider::utils::yaml_merge(concat(
     local.yaml_strings_directories,
     local.yaml_strings_files,
     local.model_strings
-  )
+  )))
+  # user defaults are part of user provided model data under root key "defaults"
+  user_defaults = { "defaults" : try(local.model["defaults"], {}) }
+  # module defaults (defaults/ise_defaults.yaml) merged with user defaults,
+  # user defaults override the module defaults
+  defaults = yamldecode(provider::utils::yaml_merge([
+    file("${path.module}/defaults/ise_defaults.yaml"),
+    yamlencode(local.user_defaults)
+  ]))["defaults"]
+}
 
+resource "terraform_data" "validation" {
   lifecycle {
     precondition {
       condition     = length(var.yaml_directories) != 0 || length(var.yaml_files) != 0 || length(keys(var.model)) != 0
       error_message = "Either `yaml_directories`,`yaml_files` or a non-empty `model` value must be provided."
     }
   }
-}
-
-# Merge the module's ise_defaults.yaml file with the user-provided defaults in model yaml files
-# User-provided defaults override the module's defaults
-data "utils_deep_merge_yaml" "defaults" {
-  input = [
-    file("${path.module}/defaults/ise_defaults.yaml"),
-    yamlencode(local.user_defaults)
-  ]
 }

@@ -9,44 +9,41 @@
 #
 #
 # ==================================================================
-# LICENSE TIER STATE 
+# LICENSE TIER STATE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
 # | licenses | List | True | List of licenses |
 #
+# YAML: ise.system.license_tier_state (single object)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for license tier state (module defaults merged with user defaults)
   defaults_license_tier_state = try(local.defaults.ise.system.license_tier_state, {})
 
-  # License Tier State (with defaults)
-  license_tier_state = [for item in try(local.ise.system.license_tier_state, []) : merge(
-    local.defaults_license_tier_state, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      licenses = [for i in try(item.licenses, []) : merge(
-        try(local.defaults_license_tier_state.licenses, {}),
-        i
-      )]
-    }
+  # License tier state objects with defaults
+  license_tier_state = [for item in try([local.ise.system.license_tier_state], []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_license_tier_state : k => v if !contains(["licenses"], k) },
+    item,
+    { for k in ["licenses"] : k => [for i in item[k] : merge(try(local.defaults_license_tier_state[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create license tier state
 resource "ise_license_tier_state" "license_tier_state" {
-  for_each = { for item in try(local.license_tier_state, []) : item.name => item }
+  count = length(local.license_tier_state)
 
-  # General attributes
-  licenses = try([for i in each.value.licenses : {
-    name = try(i.name, null),
-    status = try(i.status, null)
-  }], null)
+  licenses = try(local.license_tier_state[count.index].licenses, null) == null ? null : [for i1 in local.license_tier_state[count.index].licenses : {
+    name   = try(i1.name, null)
+    status = try(i1.status, null)
+  }]
 }
+
 #
 # ==================================================================
-# REPOSITORY 
+# REPOSITORY
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -59,33 +56,31 @@ resource "ise_license_tier_state" "license_tier_state" {
 # | password | String | False | Password can contain alphanumeric and/or special characters. |
 # | enable_pki | Bool | False | Enable PKI |
 #
+# YAML: ise.system.repository (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for repository (module defaults merged with user defaults)
   defaults_repository = try(local.defaults.ise.system.repository, {})
 
-  # Repository (with defaults)
+  # Repository objects with defaults
   repository = [for item in try(local.ise.system.repository, []) : merge(
-    local.defaults_repository, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_repository,
+    item
   )]
 }
 
-# Create repository
 resource "ise_repository" "repository" {
-  for_each = { for item in try(local.repository, []) : item.name => item }
+  for_each = { for item in local.repository : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  protocol = try(each.value.protocol, null)
-  path = try(each.value.path, null)
+  name        = try(each.value.name, null)
+  protocol    = try(each.value.protocol, null)
+  path        = try(each.value.path, null)
   server_name = try(each.value.server_name, null)
-  user_name = try(each.value.user_name, null)
-  password = sensitive(try(each.value.password, null))
-  enable_pki = try(each.value.enable_pki, null)
-  
+  user_name   = try(each.value.user_name, null)
+  password    = sensitive(try(each.value.password, null))
+  enable_pki  = try(each.value.enable_pki, null)
+
   lifecycle {
     ignore_changes = [password, enable_pki]
   }

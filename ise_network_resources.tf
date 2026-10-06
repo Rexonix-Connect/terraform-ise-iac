@@ -9,7 +9,7 @@
 #
 #
 # ==================================================================
-# NETWORK DEVICE 
+# NETWORK DEVICE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -38,6 +38,12 @@
 # | snmp_polling_interval | Int64 | False | SNMP Polling Interval in seconds |
 # | snmp_ro_community | String | False | SNMP RO Community |
 # | snmp_version | String | False | SNMP version |
+# | snmp_username | String | False | SNMP username. Required for snmp version 3. |
+# | snmp_security_level | String | False | SNMP security level. Required for snmp version 3. |
+# | snmp_auth_protocol | String | False | SNMP authentication protocol. Required for snmp version 3 and securityLevel AUTH or PRIV. |
+# | snmp_auth_password | String | False | SNMP authentication password. Required for snmp version 3 and securityLevel AUTH or PRIV. |
+# | snmp_privacy_protocol | String | False | SNMP privacy protocol. Required for snmp version 3 and securityLevel PRIV. |
+# | snmp_privacy_password | String | False | SNMP privacy password. Required for snmp version 3 and securityLevel PRIV |
 # | tacacs_connect_mode_options | String | False | Connect mode options |
 # | tacacs_shared_secret | String | False | Shared secret |
 # | trustsec_device_id | String | False | TrustSec device ID |
@@ -57,83 +63,86 @@
 # | trustsec_send_configuration_to_device_using | String | False | Send configuration to device using |
 # | trustsec_coa_source_host | String | False | CoA source host |
 #
+# YAML: ise.network_resources.network_device (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for network device (module defaults merged with user defaults)
   defaults_network_device = try(local.defaults.ise.network_resources.network_device, {})
 
-  # Network Device (with defaults)
+  # Network device objects with defaults
   network_device = [for item in try(local.ise.network_resources.network_device, []) : merge(
-    local.defaults_network_device, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      ips = [for i in try(item.ips, []) : merge(
-        try(local.defaults_network_device.ips, {}),
-        i
-      )]
-    }
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_device : k => v if !contains(["ips"], k) },
+    item,
+    { for k in ["ips"] : k => [for i in item[k] : merge(try(local.defaults_network_device[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create network device
 resource "ise_network_device" "network_device" {
-  for_each = { for item in try(local.network_device, []) : item.name => item }
+  for_each = { for item in local.network_device : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  authentication_enable_key_wrap = try(each.value.authentication_enable_key_wrap, null)
-  authentication_encryption_key = sensitive(try(each.value.authentication_encryption_key, null))
-  authentication_encryption_key_format = try(each.value.authentication_encryption_key_format, null)
+  name                                          = try(each.value.name, null)
+  description                                   = try(each.value.description, null)
+  authentication_enable_key_wrap                = try(each.value.authentication_enable_key_wrap, null)
+  authentication_encryption_key                 = sensitive(try(each.value.authentication_encryption_key, null))
+  authentication_encryption_key_format          = try(each.value.authentication_encryption_key_format, null)
   authentication_message_authenticator_code_key = sensitive(try(each.value.authentication_message_authenticator_code_key, null))
-  authentication_network_protocol = try(each.value.authentication_network_protocol, null)
-  authentication_radius_shared_secret = sensitive(try(each.value.authentication_radius_shared_secret, null))
-  authentication_enable_multi_secret = try(each.value.authentication_enable_multi_secret, null)
-  authentication_second_radius_shared_secret = sensitive(try(each.value.authentication_second_radius_shared_secret, null))
-  authentication_dtls_required = try(each.value.authentication_dtls_required, null)
-  coa_port = try(each.value.coa_port, null)
-  dtls_dns_name = try(each.value.dtls_dns_name, null)
-  ips = try([for i in each.value.ips : {
-    ipaddress = try(i.ipaddress, null),
-    ipaddress_exclude = try(i.ipaddress_exclude, null),
-    mask = try(i.mask, null)
-  }], null)
-  network_device_groups = try(each.value.network_device_groups, null)
-  model_name = try(each.value.model_name, null)
-  software_version = try(each.value.software_version, null)
-  profile_name = try(each.value.profile_name, null)
-  snmp_link_trap_query = try(each.value.snmp_link_trap_query, null)
-  snmp_mac_trap_query = try(each.value.snmp_mac_trap_query, null)
-  snmp_originating_policy_service_node = try(each.value.snmp_originating_policy_service_node, null)
-  snmp_polling_interval = try(each.value.snmp_polling_interval, null)
-  snmp_ro_community = sensitive(try(each.value.snmp_ro_community, null))
-  snmp_version = try(each.value.snmp_version, null)
-  tacacs_connect_mode_options = try(each.value.tacacs_connect_mode_options, null)
-  tacacs_shared_secret = sensitive(try(each.value.tacacs_shared_secret, null))
-  trustsec_device_id = try(each.value.trustsec_device_id, null)
-  trustsec_device_password = sensitive(try(each.value.trustsec_device_password, null))
-  trustsec_rest_api_username = sensitive(try(each.value.trustsec_rest_api_username, null))
-  trustsec_rest_api_password = sensitive(try(each.value.trustsec_rest_api_password, null))
-  trustsec_enable_mode_password = sensitive(try(each.value.trustsec_enable_mode_password, null))
-  trustsec_exec_mode_password = sensitive(try(each.value.trustsec_exec_mode_password, null))
-  trustsec_exec_mode_username = sensitive(try(each.value.trustsec_exec_mode_username, null))
-  trustsec_include_when_deploying_sgt_updates = try(each.value.trustsec_include_when_deploying_sgt_updates, null)
-  trustsec_download_environment_data_every_x_seconds = try(each.value.trustsec_download_environment_data_every_x_seconds, null)
+  authentication_network_protocol               = try(each.value.authentication_network_protocol, null)
+  authentication_radius_shared_secret           = sensitive(try(each.value.authentication_radius_shared_secret, null))
+  authentication_enable_multi_secret            = try(each.value.authentication_enable_multi_secret, null)
+  authentication_second_radius_shared_secret    = sensitive(try(each.value.authentication_second_radius_shared_secret, null))
+  authentication_dtls_required                  = try(each.value.authentication_dtls_required, null)
+  coa_port                                      = try(each.value.coa_port, null)
+  dtls_dns_name                                 = try(each.value.dtls_dns_name, null)
+  ips = try(each.value.ips, null) == null ? null : [for i1 in each.value.ips : {
+    ipaddress         = try(i1.ipaddress, null)
+    ipaddress_exclude = try(i1.ipaddress_exclude, null)
+    mask              = try(i1.mask, null)
+  }]
+  network_device_groups                                       = try(each.value.network_device_groups, null)
+  model_name                                                  = try(each.value.model_name, null)
+  software_version                                            = try(each.value.software_version, null)
+  profile_name                                                = try(each.value.profile_name, null)
+  snmp_link_trap_query                                        = try(each.value.snmp_link_trap_query, null)
+  snmp_mac_trap_query                                         = try(each.value.snmp_mac_trap_query, null)
+  snmp_originating_policy_service_node                        = try(each.value.snmp_originating_policy_service_node, null)
+  snmp_polling_interval                                       = try(each.value.snmp_polling_interval, null)
+  snmp_ro_community                                           = sensitive(try(each.value.snmp_ro_community, null))
+  snmp_version                                                = try(each.value.snmp_version, null)
+  snmp_username                                               = sensitive(try(each.value.snmp_username, null))
+  snmp_security_level                                         = try(each.value.snmp_security_level, null)
+  snmp_auth_protocol                                          = try(each.value.snmp_auth_protocol, null)
+  snmp_auth_password                                          = sensitive(try(each.value.snmp_auth_password, null))
+  snmp_privacy_protocol                                       = try(each.value.snmp_privacy_protocol, null)
+  snmp_privacy_password                                       = sensitive(try(each.value.snmp_privacy_password, null))
+  tacacs_connect_mode_options                                 = try(each.value.tacacs_connect_mode_options, null)
+  tacacs_shared_secret                                        = sensitive(try(each.value.tacacs_shared_secret, null))
+  trustsec_device_id                                          = try(each.value.trustsec_device_id, null)
+  trustsec_device_password                                    = sensitive(try(each.value.trustsec_device_password, null))
+  trustsec_rest_api_username                                  = sensitive(try(each.value.trustsec_rest_api_username, null))
+  trustsec_rest_api_password                                  = sensitive(try(each.value.trustsec_rest_api_password, null))
+  trustsec_enable_mode_password                               = sensitive(try(each.value.trustsec_enable_mode_password, null))
+  trustsec_exec_mode_password                                 = sensitive(try(each.value.trustsec_exec_mode_password, null))
+  trustsec_exec_mode_username                                 = sensitive(try(each.value.trustsec_exec_mode_username, null))
+  trustsec_include_when_deploying_sgt_updates                 = try(each.value.trustsec_include_when_deploying_sgt_updates, null)
+  trustsec_download_environment_data_every_x_seconds          = try(each.value.trustsec_download_environment_data_every_x_seconds, null)
   trustsec_download_peer_authorization_policy_every_x_seconds = try(each.value.trustsec_download_peer_authorization_policy_every_x_seconds, null)
-  trustsec_download_sgacl_lists_every_x_seconds = try(each.value.trustsec_download_sgacl_lists_every_x_seconds, null)
-  trustsec_other_sga_devices_to_trust_this_device = try(each.value.trustsec_other_sga_devices_to_trust_this_device, null)
-  trustsec_re_authentication_every_x_seconds = try(each.value.trustsec_re_authentication_every_x_seconds, null)
-  trustsec_send_configuration_to_device = try(each.value.trustsec_send_configuration_to_device, null)
-  trustsec_send_configuration_to_device_using = try(each.value.trustsec_send_configuration_to_device_using, null)
-  trustsec_coa_source_host = try(each.value.trustsec_coa_source_host, null)
-  
+  trustsec_download_sgacl_lists_every_x_seconds               = try(each.value.trustsec_download_sgacl_lists_every_x_seconds, null)
+  trustsec_other_sga_devices_to_trust_this_device             = try(each.value.trustsec_other_sga_devices_to_trust_this_device, null)
+  trustsec_re_authentication_every_x_seconds                  = try(each.value.trustsec_re_authentication_every_x_seconds, null)
+  trustsec_send_configuration_to_device                       = try(each.value.trustsec_send_configuration_to_device, null)
+  trustsec_send_configuration_to_device_using                 = try(each.value.trustsec_send_configuration_to_device_using, null)
+  trustsec_coa_source_host                                    = try(each.value.trustsec_coa_source_host, null)
+
   lifecycle {
-    ignore_changes = [trustsec_rest_api_password]
+    ignore_changes = [authentication_encryption_key, authentication_message_authenticator_code_key, authentication_radius_shared_secret, authentication_second_radius_shared_secret, snmp_auth_password, snmp_privacy_password, tacacs_shared_secret, trustsec_device_password, trustsec_rest_api_password, trustsec_enable_mode_password, trustsec_exec_mode_password]
   }
 }
+
 #
 # ==================================================================
-# NETWORK DEVICE GROUP 
+# NETWORK DEVICE GROUP
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -142,26 +151,24 @@ resource "ise_network_device" "network_device" {
 # | description | String | False | Description |
 # | root_group | String | True | The name of the root device group. |
 #
+# YAML: ise.network_resources.network_device_group (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for network device group (module defaults merged with user defaults)
   defaults_network_device_group = try(local.defaults.ise.network_resources.network_device_group, {})
 
-  # Network Device Group (with defaults)
+  # Network device group objects with defaults
   network_device_group = [for item in try(local.ise.network_resources.network_device_group, []) : merge(
-    local.defaults_network_device_group, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_network_device_group,
+    item
   )]
 }
 
-# Create network device group
 resource "ise_network_device_group" "network_device_group" {
-  for_each = { for item in try(local.network_device_group, []) : item.name => item }
+  for_each = { for item in local.network_device_group : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
+  name        = try(each.value.name, null)
   description = try(each.value.description, null)
-  root_group = try(each.value.root_group, null)
+  root_group  = try(each.value.root_group, null)
 }

@@ -1,0 +1,57 @@
+{% set t = target %}
+
+#
+# ------------------------------------------------------------------
+# {{ t | replace("_", " ") | upper() }} REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to {{ t | replace("_", " ") }} objects by name. Names are
+# resolved to IDs of objects managed by this module{% if data_source %}, or looked up in ISE{% endif %}.
+#
+
+locals {
+  {{ t }}_referenced_names = distinct(compact(flatten([
+{% for e in referenced_names %}
+    {{ e }},
+{% endfor %}
+  ])))
+{% if managed %}
+  {{ t }}_managed_names = [for item in local.{{ t }} : item.name]
+{% else %}
+  {{ t }}_managed_names = []
+{% endif %}
+}
+{% if data_source %}
+
+data "ise_{{ t }}" "{{ t }}" {
+  for_each = toset([for n in local.{{ t }}_referenced_names : n if !contains(local.{{ t }}_managed_names, n)])
+
+  name = each.key
+}
+{% endif %}
+
+locals {
+{% if data_source %}
+  {{ t }}_lookup_ids = { for k, v in data.ise_{{ t }}.{{ t }} : k => v.id }
+{% else %}
+  {{ t }}_lookup_ids = {}
+{% endif %}
+{% if tiers > 1 %}
+{% for tier in range(tiers) %}
+  {{ t }}_ids_tier{{ tier }} = merge(
+    local.{{ t }}_lookup_ids,
+{% for p in range(tier) %}
+    { for k, v in ise_{{ t }}.{{ t }}{% if p > 0 %}_tier{{ p }}{% endif %} : k => v.id },
+{% endfor %}
+  )
+{% endfor %}
+{% endif %}
+  {{ t }}_ids = merge(
+    local.{{ t }}_lookup_ids,
+{% if managed %}
+{% for p in range(tiers) %}
+    { for k, v in ise_{{ t }}.{{ t }}{% if p > 0 %}_tier{{ p }}{% endif %} : k => v.id },
+{% endfor %}
+{% endif %}
+  )
+}

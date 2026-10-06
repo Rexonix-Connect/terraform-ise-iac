@@ -10,7 +10,7 @@
 ise:
   system:
     license_tier_state:
-    - licenses:
+      licenses:
       - name: ESSENTIAL
         status: ENABLED
     repository:

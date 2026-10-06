@@ -1,69 +1,98 @@
+{% set r = resource.name %}
 #
 # ==================================================================
-# {{ resource.name | replace("_", " ") | upper() }} 
+# {{ r | replace("_", " ") | upper() }}
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-{% for attr in resource.definition.processed_attributes %}
-# | {{ attr.name }} | {{ attr.type }} | {{ attr.mandatory | default("False") }} | {{ attr.description | default("") }} |
+{% for row in rows %}
+# | {{ row.name }} | {{ row.type }} | {{ row.mandatory }} | {{ row.description }} |
 {% endfor %}
+#
+{% if resource.singleton %}
+# YAML: ise.{{ resource.category }}.{{ r }} (single object)
+{% else %}
+# YAML: ise.{{ resource.category }}.{{ r }} (list, objects identified by {{ resource.key | join("/") }})
+{% endif %}
+{% if resource.ranks %}
+# The rank attribute is applied through ise_{{ resource.ranks.resource }}.
+{% endif %}
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_{{ resource.name }} = try(local.defaults.ise.{{ category }}.{{ resource.name }}, {})
+  # Defaults for {{ r | replace("_", " ") }} (module defaults merged with user defaults)
+  defaults_{{ r }} = try(local.defaults.ise.{{ resource.category }}.{{ r }}, {})
 
-  # {{ resource.name | replace("_", " ") | title }} (with defaults)
-  {{ resource.name }} = [for item in try(local.ise.{{ category }}.{{ resource.name }}, []) : merge(
-    local.defaults_{{ resource.name }}, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-{% for attr in resource.definition.processed_attributes %}
-{% if attr.nested_attributes %}
-      {{ attr.name }} = [for i in try(item.{{ attr.name }}, []) : merge(
-        try(local.defaults_{{ resource.name }}.{{ attr.name }}, {}),
-        i
-      )]
+  # {{ r | replace("_", " ") | capitalize }} objects with defaults
+{% if resource.singleton %}
+  {{ r }} = [for item in try([local.ise.{{ resource.category }}.{{ r }}], []) : merge(
+{% else %}
+  {{ r }} = [for item in try(local.ise.{{ resource.category }}.{{ r }}, []) : merge(
 {% endif %}
-{% endfor %}
-    }
+{% if nested_attributes %}
+{% set nested_list %}[{% for n in nested_attributes %}"{{ n }}"{% if not loop.last %}, {% endif %}{% endfor %}]{% endset %}
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_{{ r }} : k => v if !contains({{ nested_list }}, k) },
+    item,
+    { for k in {{ nested_list }} : k => [for i in item[k] : merge(try(local.defaults_{{ r }}[k], {}), i)] if try(item[k], null) != null }
+{% else %}
+    local.defaults_{{ r }},
+    item
+{% endif %}
   )]
 }
+{% if resource.tiers > 1 %}
+{% set all_tiers %}{% for t in range(resource.tiers) %}local.{{ r }}_tier{{ t }}{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
 
-# Create {{ resource.name | replace("_", " ") }}
-resource "ise_{{ resource.name }}" "{{ resource.name }}" {
-  for_each = { for item in try(local.{{ resource.name }}, []) : item.name => item }
-
-  # General attributes
-{% for attr in resource.definition.processed_attributes %}
-{% if not attr.nested_attributes %}
-{% if attr.sensitive %}
-  {{ attr.name }} = sensitive(try(each.value.{{ attr.name }}, null))
-{% else %}
-  {{ attr.name }} = try(each.value.{{ attr.name }}, null)
-{% endif %}
-{% else %}
-  {{ attr.name }} = try([for i in each.value.{{ attr.name }} : {
-{% for nested_attr in attr.nested_attributes %}
-{% if nested_attr.sensitive %}
-    {{ nested_attr.name }} = sensitive(try(i.{{ nested_attr.name }}, null)){% if not loop.last %},{% endif %}
-{% else %}
-    {{ nested_attr.name }} = try(i.{{ nested_attr.name }}, null){% if not loop.last %},{% endif %}
-{% endif %}
-
+locals {
+  # Managed {{ r | replace("_", " ") }} objects each object refers to. Objects are
+  # created in tiers so that referenced objects exist before the objects using them.
+  {{ r }}_self_references = {
+    for item in local.{{ r }} : item.name => [
+      for n in distinct(compact(flatten([
+{% for e in self_reference_names %}
+        {{ e }},
 {% endfor %}
-  }], null)
-{% endif %}
-{% endfor %}
-
-{%- if resource.definition.ignore_changes_attributes %}  
-  lifecycle {
-    ignore_changes = [
-{%- for attr in resource.definition.ignore_changes_attributes -%}
-      {{ attr }}{% if not loop.last %}, {% endif %}
-{%- endfor -%}
+      ]))) : n if contains([for i in local.{{ r }} : i.name], n)
     ]
+  }
+  {{ r }}_tier0 = [for k, refs in local.{{ r }}_self_references : k if length(refs) == 0]
+{% for t in range(1, resource.tiers) %}
+{% set lower %}{% for p in range(t) %}local.{{ r }}_tier{{ p }}{% if not loop.last %}, {% endif %}{% endfor %}{% endset %}
+  {{ r }}_tier{{ t }} = [for k, refs in local.{{ r }}_self_references : k if !contains(concat({{ lower }}), k) && alltrue([for n in refs : contains(concat({{ lower }}), n)])]
+{% endfor %}
+  {{ r }}_untiered = [for k in keys(local.{{ r }}_self_references) : k if !contains(concat({{ all_tiers }}), k)]
+}
+
+resource "terraform_data" "{{ r }}_tiers" {
+  lifecycle {
+    precondition {
+      condition     = length(local.{{ r }}_untiered) == 0
+      error_message = "{{ r | replace("_", " ") | capitalize }} objects refer to each other in a loop or more than {{ resource.tiers - 1 }} levels deep: ${join(", ", local.{{ r }}_untiered)}"
+    }
+  }
+}
+{% endif %}
+{% for t in tiers %}
+
+resource "ise_{{ r }}" "{{ t.resource_name }}" {
+{% if resource.singleton %}
+  count = length(local.{{ r }})
+{% elif resource.tiers > 1 %}
+  for_each = { for item in local.{{ r }} : {{ key }} => item if contains(local.{{ r }}_tier{{ t.tier }}, item.name) }
+{% else %}
+  for_each = { for item in local.{{ r }} : {{ key }} => item }
+{% endif %}
+
+{% for attr in t.attributes %}
+  {{ attr.name }} = {{ attr.expr }}
+{% endfor %}
+{% if ignore_changes %}
+
+  lifecycle {
+    ignore_changes = [{{ ignore_changes | join(", ") }}]
   }
 {% endif %}
 }
+{% endfor %}

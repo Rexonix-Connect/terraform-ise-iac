@@ -9,307 +9,91 @@
 #
 #
 # ==================================================================
-# CERTIFICATE AUTHENTICATION PROFILE 
+# ACTIVE DIRECTORY ADD GROUPS
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | name | String | True | The name of the certificate profile |
-# | description | String | False | Description |
-# | allowed_as_user_name | Bool | False | Allow as username |
-# | external_identity_store_name | String | False | Referred IDStore name for the Certificate Profile or `[not applicable]` in case no identity store is chosen |
-# | certificate_attribute_name | String | False | Attribute name of the Certificate Profile - used only when CERTIFICATE is chosen in `username_from`. |
-# | match_mode | String | False | Match mode of the Certificate Profile. Allowed values: NEVER, RESOLVE_IDENTITY_AMBIGUITY, BINARY_COMPARISON |
-# | username_from | String | False | The attribute in the certificate where the user name should be taken from. Allowed values: `CERTIFICATE` (for a specific attribute as defined in certificateAttributeName), `UPN` (for using any Subject or Alternative Name Attributes in the Certificate - an option only in AD) |
+# | join_point_id | String | False | Active Directory Join Point ID |
+# | name | String | True | The name of the active directory join point |
+# | description | String | False | Join point Description |
+# | domain | String | True | AD domain associated with the join point |
+# | ad_scopes_names | String | False | String that contains the names of the scopes that the active directory belongs to. Names are separated by comm |
+# | enable_domain_allowed_list | Bool | False |  |
+# | groups | List | False | List of AD Groups |
+#
+# YAML: ise.identity_management.active_directory_add_groups (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_certificate_authentication_profile = try(local.defaults.ise.identity_management.certificate_authentication_profile, {})
+  # Defaults for active directory add groups (module defaults merged with user defaults)
+  defaults_active_directory_add_groups = try(local.defaults.ise.identity_management.active_directory_add_groups, {})
 
-  # Certificate Authentication Profile (with defaults)
-  certificate_authentication_profile = [for item in try(local.ise.identity_management.certificate_authentication_profile, []) : merge(
-    local.defaults_certificate_authentication_profile, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+  # Active directory add groups objects with defaults
+  active_directory_add_groups = [for item in try(local.ise.identity_management.active_directory_add_groups, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_active_directory_add_groups : k => v if !contains(["groups"], k) },
+    item,
+    { for k in ["groups"] : k => [for i in item[k] : merge(try(local.defaults_active_directory_add_groups[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create certificate authentication profile
-resource "ise_certificate_authentication_profile" "certificate_authentication_profile" {
-  for_each = { for item in try(local.certificate_authentication_profile, []) : item.name => item }
+resource "ise_active_directory_add_groups" "active_directory_add_groups" {
+  for_each = { for item in local.active_directory_add_groups : try(item.name, item.join_point_id, "") => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  allowed_as_user_name = try(each.value.allowed_as_user_name, null)
-  external_identity_store_name = try(each.value.external_identity_store_name, null)
-  certificate_attribute_name = try(each.value.certificate_attribute_name, null)
-  match_mode = try(each.value.match_mode, null)
-  username_from = try(each.value.username_from, null)
-}
-#
-# ==================================================================
-# IDENTITY SOURCE SEQUENCE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the identity source sequence |
-# | description | String | False | Description |
-# | break_on_store_fail | Bool | True | Do not access other stores in the sequence if a selected identity store cannot be accessed for authentication |
-# | certificate_authentication_profile | String | True | Certificate Authentication Profile, empty if doesn't exist |
-# | identity_sources | List | True |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_identity_source_sequence = try(local.defaults.ise.identity_management.identity_source_sequence, {})
-
-  # Identity Source Sequence (with defaults)
-  identity_source_sequence = [for item in try(local.ise.identity_management.identity_source_sequence, []) : merge(
-    local.defaults_identity_source_sequence, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      identity_sources = [for i in try(item.identity_sources, []) : merge(
-        try(local.defaults_identity_source_sequence.identity_sources, {}),
-        i
-      )]
-    }
-  )]
+  join_point_id              = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.name, null) != null ? local.active_directory_join_point_ids[each.value.name] : null
+  name                       = try(each.value.name, null)
+  description                = try(each.value.description, null)
+  domain                     = try(each.value.domain, null)
+  ad_scopes_names            = try(each.value.ad_scopes_names, null)
+  enable_domain_allowed_list = try(each.value.enable_domain_allowed_list, null)
+  groups = try(each.value.groups, null) == null ? null : [for i1 in each.value.groups : {
+    name = try(i1.name, null)
+    sid  = try(i1.sid, null)
+    type = try(i1.type, null)
+  }]
 }
 
-# Create identity source sequence
-resource "ise_identity_source_sequence" "identity_source_sequence" {
-  for_each = { for item in try(local.identity_source_sequence, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  break_on_store_fail = try(each.value.break_on_store_fail, null)
-  certificate_authentication_profile = try(each.value.certificate_authentication_profile, null)
-  identity_sources = try([for i in each.value.identity_sources : {
-    name = try(i.name, null),
-    order = try(i.order, null)
-  }], null)
-}
 #
 # ==================================================================
-# ENDPOINT 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the endpoint |
-# | description | String | False | Description |
-# | mac | String | True | MAC address of the endpoint |
-# | group_id | String | False | Identity Group ID |
-# | profile_id | String | False | Profile ID |
-# | static_profile_assignment | Bool | True | Static Profile Assignment |
-# | static_profile_assignment_defined | Bool | False | Static Profile Assignment Defined |
-# | static_group_assignment | Bool | True | Static Group Assignment |
-# | static_group_assignment_defined | Bool | False | staticGroupAssignmentDefined |
-# | custom_attributes | Map | False | Custom Attributes |
-# | identity_store | String | False | Identity Store |
-# | identity_store_id | String | False | Identity Store Id |
-# | portal_user | String | False | Portal User |
-# | mdm_server_name | String | False | Mdm Server Name |
-# | mdm_reachable | Bool | False | Mdm Reachable |
-# | mdm_enrolled | Bool | False | Mdm Enrolled |
-# | mdm_compliance_status | Bool | False | Mdm Compliance Status |
-# | mdm_os | String | False | Mdm OS |
-# | mdm_manufacturer | String | False | Mdm Manufacturer |
-# | mdm_model | String | False | Mdm Model |
-# | mdm_serial | String | False | Mdm Serial |
-# | mdm_encrypted | Bool | False | Mdm Encrypted |
-# | mdm_pinlock | Bool | False | Mdm Pinlock |
-# | mdm_jail_broken | Bool | False | Mdm JailBroken |
-# | mdm_imei | String | False | Mdm IMEI |
-# | mdm_phone_number | String | False | Mdm PhoneNumber |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_endpoint = try(local.defaults.ise.identity_management.endpoint, {})
-
-  # Endpoint (with defaults)
-  endpoint = [for item in try(local.ise.identity_management.endpoint, []) : merge(
-    local.defaults_endpoint, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create endpoint
-resource "ise_endpoint" "endpoint" {
-  for_each = { for item in try(local.endpoint, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  mac = try(each.value.mac, null)
-  group_id = try(each.value.group_id, null)
-  profile_id = try(each.value.profile_id, null)
-  static_profile_assignment = try(each.value.static_profile_assignment, null)
-  static_profile_assignment_defined = try(each.value.static_profile_assignment_defined, null)
-  static_group_assignment = try(each.value.static_group_assignment, null)
-  static_group_assignment_defined = try(each.value.static_group_assignment_defined, null)
-  custom_attributes = try(each.value.custom_attributes, null)
-  identity_store = try(each.value.identity_store, null)
-  identity_store_id = try(each.value.identity_store_id, null)
-  portal_user = try(each.value.portal_user, null)
-  mdm_server_name = try(each.value.mdm_server_name, null)
-  mdm_reachable = try(each.value.mdm_reachable, null)
-  mdm_enrolled = try(each.value.mdm_enrolled, null)
-  mdm_compliance_status = try(each.value.mdm_compliance_status, null)
-  mdm_os = try(each.value.mdm_os, null)
-  mdm_manufacturer = try(each.value.mdm_manufacturer, null)
-  mdm_model = try(each.value.mdm_model, null)
-  mdm_serial = try(each.value.mdm_serial, null)
-  mdm_encrypted = try(each.value.mdm_encrypted, null)
-  mdm_pinlock = try(each.value.mdm_pinlock, null)
-  mdm_jail_broken = try(each.value.mdm_jail_broken, null)
-  mdm_imei = try(each.value.mdm_imei, null)
-  mdm_phone_number = try(each.value.mdm_phone_number, null)
-}
-#
-# ==================================================================
-# ACTIVE DIRECTORY JOIN DOMAIN WITH ALL NODES 
+# ACTIVE DIRECTORY JOIN DOMAIN WITH ALL NODES
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
 # | join_point_id | String | False | Active Directory Join Point ID |
 # | additional_data | List | True |  |
+# | join_point_name | String | False | Name of the referenced active directory join point, alternative to `join_point_id` |
+#
+# YAML: ise.identity_management.active_directory_join_domain_with_all_nodes (list, objects identified by join_point_name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for active directory join domain with all nodes (module defaults merged with user defaults)
   defaults_active_directory_join_domain_with_all_nodes = try(local.defaults.ise.identity_management.active_directory_join_domain_with_all_nodes, {})
 
-  # Active Directory Join Domain With All Nodes (with defaults)
+  # Active directory join domain with all nodes objects with defaults
   active_directory_join_domain_with_all_nodes = [for item in try(local.ise.identity_management.active_directory_join_domain_with_all_nodes, []) : merge(
-    local.defaults_active_directory_join_domain_with_all_nodes, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      additional_data = [for i in try(item.additional_data, []) : merge(
-        try(local.defaults_active_directory_join_domain_with_all_nodes.additional_data, {}),
-        i
-      )]
-    }
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_active_directory_join_domain_with_all_nodes : k => v if !contains(["additional_data"], k) },
+    item,
+    { for k in ["additional_data"] : k => [for i in item[k] : merge(try(local.defaults_active_directory_join_domain_with_all_nodes[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create active directory join domain with all nodes
 resource "ise_active_directory_join_domain_with_all_nodes" "active_directory_join_domain_with_all_nodes" {
-  for_each = { for item in try(local.active_directory_join_domain_with_all_nodes, []) : item.name => item }
+  for_each = { for item in local.active_directory_join_domain_with_all_nodes : try(item.join_point_name, item.join_point_id, "") => item }
 
-  # General attributes
-  join_point_id = try(each.value.join_point_id, null)
-  additional_data = try([for i in each.value.additional_data : {
-    name = try(i.name, null),
-    value = try(i.value, null)
-  }], null)
-}
-#
-# ==================================================================
-# INTERNAL USER 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the internal user |
-# | password | String | True | The password of the internal user |
-# | change_password | Bool | False | Requires the user to change the password |
-# | email | String | False | Email address |
-# | account_name_alias | String | False | The Account Name Alias will be used to send email notifications about password expiration. This field is only supported from ISE 3.2. |
-# | enable_password | String | False | This field is added in ISE 2.0 to support TACACS+ |
-# | enabled | Bool | False | Whether the user is enabled/disabled |
-# | password_never_expires | Bool | False | Set to `true` to indicate the user password never expires. This will not apply to Users who are also ISE Admins. This field is only supported from ISE 3.2. |
-# | first_name | String | False | First name of the internal user |
-# | last_name | String | False | Last name of the internal user |
-# | identity_groups | String | False | Comma separated list of identity group IDs. |
-# | custom_attributes | String | False | Key value map |
-# | password_id_store | String | False | The ID store where the internal user's password is kept |
-# | description | String | False | Description |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_internal_user = try(local.defaults.ise.identity_management.internal_user, {})
-
-  # Internal User (with defaults)
-  internal_user = [for item in try(local.ise.identity_management.internal_user, []) : merge(
-    local.defaults_internal_user, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
+  join_point_id = try(each.value.join_point_id, null) != null ? each.value.join_point_id : try(each.value.join_point_name, null) != null ? local.active_directory_join_point_ids[each.value.join_point_name] : null
+  additional_data = try(each.value.additional_data, null) == null ? null : [for i1 in each.value.additional_data : {
+    name  = try(i1.name, null)
+    value = try(i1.value, null)
+  }]
 }
 
-# Create internal user
-resource "ise_internal_user" "internal_user" {
-  for_each = { for item in try(local.internal_user, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  password = sensitive(try(each.value.password, null))
-  change_password = sensitive(try(each.value.change_password, null))
-  email = try(each.value.email, null)
-  account_name_alias = try(each.value.account_name_alias, null)
-  enable_password = sensitive(try(each.value.enable_password, null))
-  enabled = try(each.value.enabled, null)
-  password_never_expires = try(each.value.password_never_expires, null)
-  first_name = try(each.value.first_name, null)
-  last_name = try(each.value.last_name, null)
-  identity_groups = try(each.value.identity_groups, null)
-  custom_attributes = try(each.value.custom_attributes, null)
-  password_id_store = try(each.value.password_id_store, null)
-  description = try(each.value.description, null)
-  
-  lifecycle {
-    ignore_changes = [password, enable_password]
-  }
-}
 #
 # ==================================================================
-# USER IDENTITY GROUP 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the user identity group |
-# | description | String | False | Description |
-# | parent | String | False | Parent user identity group, e.g. `NAC Group:NAC:IdentityGroups:User Identity Groups` |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_user_identity_group = try(local.defaults.ise.identity_management.user_identity_group, {})
-
-  # User Identity Group (with defaults)
-  user_identity_group = [for item in try(local.ise.identity_management.user_identity_group, []) : merge(
-    local.defaults_user_identity_group, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create user identity group
-resource "ise_user_identity_group" "user_identity_group" {
-  for_each = { for item in try(local.user_identity_group, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  parent = try(each.value.parent, null)
-}
-#
-# ==================================================================
-# ACTIVE DIRECTORY JOIN POINT 
+# ACTIVE DIRECTORY JOIN POINT
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -348,137 +132,259 @@ resource "ise_user_identity_group" "user_identity_group" {
 # | failed_auth_threshold | Int64 | False | Number of bad password attempts |
 # | auth_protection_type | String | False | Enable prevent AD account lockout for WIRELESS/WIRED/BOTH |
 #
+# YAML: ise.identity_management.active_directory_join_point (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for active directory join point (module defaults merged with user defaults)
   defaults_active_directory_join_point = try(local.defaults.ise.identity_management.active_directory_join_point, {})
 
-  # Active Directory Join Point (with defaults)
+  # Active directory join point objects with defaults
   active_directory_join_point = [for item in try(local.ise.identity_management.active_directory_join_point, []) : merge(
-    local.defaults_active_directory_join_point, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      groups = [for i in try(item.groups, []) : merge(
-        try(local.defaults_active_directory_join_point.groups, {}),
-        i
-      )]
-      attributes = [for i in try(item.attributes, []) : merge(
-        try(local.defaults_active_directory_join_point.attributes, {}),
-        i
-      )]
-      rewrite_rules = [for i in try(item.rewrite_rules, []) : merge(
-        try(local.defaults_active_directory_join_point.rewrite_rules, {}),
-        i
-      )]
-    }
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_active_directory_join_point : k => v if !contains(["groups", "attributes", "rewrite_rules"], k) },
+    item,
+    { for k in ["groups", "attributes", "rewrite_rules"] : k => [for i in item[k] : merge(try(local.defaults_active_directory_join_point[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create active directory join point
 resource "ise_active_directory_join_point" "active_directory_join_point" {
-  for_each = { for item in try(local.active_directory_join_point, []) : item.name => item }
+  for_each = { for item in local.active_directory_join_point : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  domain = try(each.value.domain, null)
-  ad_scopes_names = try(each.value.ad_scopes_names, null)
+  name                       = try(each.value.name, null)
+  description                = try(each.value.description, null)
+  domain                     = try(each.value.domain, null)
+  ad_scopes_names            = try(each.value.ad_scopes_names, null)
   enable_domain_allowed_list = try(each.value.enable_domain_allowed_list, null)
-  groups = try([for i in each.value.groups : {
-    name = try(i.name, null),
-    sid = try(i.sid, null),
-    type = try(i.type, null)
-  }], null)
-  attributes = try([for i in each.value.attributes : {
-    name = try(i.name, null),
-    type = try(i.type, null),
-    internal_name = try(i.internal_name, null),
-    default_value = try(i.default_value, null)
-  }], null)
-  rewrite_rules = try([for i in each.value.rewrite_rules : {
-    row_id = try(i.row_id, null),
-    rewrite_match = try(i.rewrite_match, null),
-    rewrite_result = try(i.rewrite_result, null)
-  }], null)
-  enable_rewrites = try(each.value.enable_rewrites, null)
-  enable_pass_change = try(each.value.enable_pass_change, null)
-  enable_machine_auth = try(each.value.enable_machine_auth, null)
-  enable_machine_access = try(each.value.enable_machine_access, null)
-  enable_dialin_permission_check = try(each.value.enable_dialin_permission_check, null)
-  plaintext_auth = try(each.value.plaintext_auth, null)
-  aging_time = try(each.value.aging_time, null)
+  groups = try(each.value.groups, null) == null ? null : [for i1 in each.value.groups : {
+    name = try(i1.name, null)
+    sid  = try(i1.sid, null)
+    type = try(i1.type, null)
+  }]
+  attributes = try(each.value.attributes, null) == null ? null : [for i1 in each.value.attributes : {
+    name          = try(i1.name, null)
+    type          = try(i1.type, null)
+    internal_name = try(i1.internal_name, null)
+    default_value = try(i1.default_value, null)
+  }]
+  rewrite_rules = try(each.value.rewrite_rules, null) == null ? null : [for i1 in each.value.rewrite_rules : {
+    row_id         = try(i1.row_id, null)
+    rewrite_match  = try(i1.rewrite_match, null)
+    rewrite_result = try(i1.rewrite_result, null)
+  }]
+  enable_rewrites                   = try(each.value.enable_rewrites, null)
+  enable_pass_change                = try(each.value.enable_pass_change, null)
+  enable_machine_auth               = try(each.value.enable_machine_auth, null)
+  enable_machine_access             = try(each.value.enable_machine_access, null)
+  enable_dialin_permission_check    = try(each.value.enable_dialin_permission_check, null)
+  plaintext_auth                    = try(each.value.plaintext_auth, null)
+  aging_time                        = try(each.value.aging_time, null)
   enable_callback_for_dialin_client = try(each.value.enable_callback_for_dialin_client, null)
-  identity_not_in_ad_behaviour = try(each.value.identity_not_in_ad_behaviour, null)
-  unreachable_domains_behaviour = try(each.value.unreachable_domains_behaviour, null)
-  schema = try(each.value.schema, null)
-  first_name = try(each.value.first_name, null)
-  department = try(each.value.department, null)
-  last_name = try(each.value.last_name, null)
-  organizational_unit = try(each.value.organizational_unit, null)
-  job_title = try(each.value.job_title, null)
-  locality = try(each.value.locality, null)
-  email = try(each.value.email, null)
-  state_or_province = try(each.value.state_or_province, null)
-  telephone = try(each.value.telephone, null)
-  country = try(each.value.country, null)
-  street_address = try(each.value.street_address, null)
-  enable_failed_auth_protection = try(each.value.enable_failed_auth_protection, null)
-  failed_auth_threshold = try(each.value.failed_auth_threshold, null)
-  auth_protection_type = try(each.value.auth_protection_type, null)
+  identity_not_in_ad_behaviour      = try(each.value.identity_not_in_ad_behaviour, null)
+  unreachable_domains_behaviour     = try(each.value.unreachable_domains_behaviour, null)
+  schema                            = try(each.value.schema, null)
+  first_name                        = try(each.value.first_name, null)
+  department                        = try(each.value.department, null)
+  last_name                         = try(each.value.last_name, null)
+  organizational_unit               = try(each.value.organizational_unit, null)
+  job_title                         = try(each.value.job_title, null)
+  locality                          = try(each.value.locality, null)
+  email                             = try(each.value.email, null)
+  state_or_province                 = try(each.value.state_or_province, null)
+  telephone                         = try(each.value.telephone, null)
+  country                           = try(each.value.country, null)
+  street_address                    = try(each.value.street_address, null)
+  enable_failed_auth_protection     = try(each.value.enable_failed_auth_protection, null)
+  failed_auth_threshold             = try(each.value.failed_auth_threshold, null)
+  auth_protection_type              = try(each.value.auth_protection_type, null)
+
+  lifecycle {
+    ignore_changes = [aging_time]
+  }
 }
+
+
+#
+# ------------------------------------------------------------------
+# ACTIVE DIRECTORY JOIN POINT REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to active directory join point objects by name. Names are
+# resolved to IDs of objects managed by this module.
+#
+
+locals {
+  active_directory_join_point_referenced_names = distinct(compact(flatten([
+    [for item in local.active_directory_add_groups : [for v0 in [item] : try(v0.name, null) if try(v0.join_point_id, null) == null]],
+    [for item in local.active_directory_join_domain_with_all_nodes : [for v0 in [item] : try(v0.join_point_name, null) if try(v0.join_point_id, null) == null]],
+  ])))
+  active_directory_join_point_managed_names = [for item in local.active_directory_join_point : item.name]
+}
+
+locals {
+  active_directory_join_point_lookup_ids = {}
+  active_directory_join_point_ids = merge(
+    local.active_directory_join_point_lookup_ids,
+    { for k, v in ise_active_directory_join_point.active_directory_join_point : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# ACTIVE DIRECTORY ADD GROUPS 
+# CERTIFICATE AUTHENTICATION PROFILE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | join_point_id | String | False | Active Directory Join Point ID |
-# | name | String | True | The name of the active directory join point |
-# | description | String | False | Join point Description |
-# | domain | String | True | AD domain associated with the join point |
-# | ad_scopes_names | String | False | String that contains the names of the scopes that the active directory belongs to. Names are separated by comm |
-# | enable_domain_allowed_list | Bool | False |  |
-# | groups | List | False | List of AD Groups |
+# | name | String | True | The name of the certificate profile |
+# | description | String | False | Description |
+# | allowed_as_user_name | Bool | False | Allow as username |
+# | external_identity_store_name | String | False | Referred IDStore name for the Certificate Profile or `[not applicable]` in case no identity store is chosen |
+# | certificate_attribute_name | String | False | Attribute name of the Certificate Profile - used only when CERTIFICATE is chosen in `username_from`. When `username_from` is set to UPN, ISE automatically sets this to ALL_SUBJECT_AND_ALTERNATIVE_NAMES. |
+# | match_mode | String | False | Match mode of the Certificate Profile. Allowed values: NEVER, RESOLVE_IDENTITY_AMBIGUITY, BINARY_COMPARISON |
+# | username_from | String | False | The attribute in the certificate where the user name should be taken from. Allowed values: `CERTIFICATE` (for a specific attribute as defined in certificateAttributeName), `UPN` (for using any Subject or Alternative Name Attributes in the Certificate - an option only in AD) |
+#
+# YAML: ise.identity_management.certificate_authentication_profile (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_active_directory_add_groups = try(local.defaults.ise.identity_management.active_directory_add_groups, {})
+  # Defaults for certificate authentication profile (module defaults merged with user defaults)
+  defaults_certificate_authentication_profile = try(local.defaults.ise.identity_management.certificate_authentication_profile, {})
 
-  # Active Directory Add Groups (with defaults)
-  active_directory_add_groups = [for item in try(local.ise.identity_management.active_directory_add_groups, []) : merge(
-    local.defaults_active_directory_add_groups, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      groups = [for i in try(item.groups, []) : merge(
-        try(local.defaults_active_directory_add_groups.groups, {}),
-        i
-      )]
-    }
+  # Certificate authentication profile objects with defaults
+  certificate_authentication_profile = [for item in try(local.ise.identity_management.certificate_authentication_profile, []) : merge(
+    local.defaults_certificate_authentication_profile,
+    item
   )]
 }
 
-# Create active directory add groups
-resource "ise_active_directory_add_groups" "active_directory_add_groups" {
-  for_each = { for item in try(local.active_directory_add_groups, []) : item.name => item }
+resource "ise_certificate_authentication_profile" "certificate_authentication_profile" {
+  for_each = { for item in local.certificate_authentication_profile : item.name => item }
 
-  # General attributes
-  join_point_id = try(each.value.join_point_id, null)
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  domain = try(each.value.domain, null)
-  ad_scopes_names = try(each.value.ad_scopes_names, null)
-  enable_domain_allowed_list = try(each.value.enable_domain_allowed_list, null)
-  groups = try([for i in each.value.groups : {
-    name = try(i.name, null),
-    sid = try(i.sid, null),
-    type = try(i.type, null)
-  }], null)
+  name                         = try(each.value.name, null)
+  description                  = try(each.value.description, null)
+  allowed_as_user_name         = try(each.value.allowed_as_user_name, null)
+  external_identity_store_name = try(each.value.external_identity_store_name, null)
+  certificate_attribute_name   = try(each.value.certificate_attribute_name, null)
+  match_mode                   = try(each.value.match_mode, null)
+  username_from                = try(each.value.username_from, null)
 }
+
 #
 # ==================================================================
-# ENDPOINT IDENTITY GROUP 
+# ENDPOINT
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the endpoint |
+# | description | String | False | Description |
+# | mac | String | True | MAC address of the endpoint |
+# | group_id | String | False | Identity Group ID |
+# | profile_id | String | False | Profile ID |
+# | static_profile_assignment | Bool | True | Static Profile Assignment |
+# | static_profile_assignment_defined | Bool | False | Static Profile Assignment Defined |
+# | static_group_assignment | Bool | True | Static Group Assignment |
+# | static_group_assignment_defined | Bool | False | staticGroupAssignmentDefined |
+# | custom_attributes | Map | False | Custom Attributes |
+# | identity_store | String | False | Identity Store |
+# | identity_store_id | String | False | Identity Store Id |
+# | portal_user | String | False | Portal User |
+# | mdm_server_name | String | False | Mdm Server Name |
+# | mdm_reachable | Bool | False | Mdm Reachable |
+# | mdm_enrolled | Bool | False | Mdm Enrolled |
+# | mdm_compliance_status | Bool | False | Mdm Compliance Status |
+# | mdm_os | String | False | Mdm OS |
+# | mdm_manufacturer | String | False | Mdm Manufacturer |
+# | mdm_model | String | False | Mdm Model |
+# | mdm_serial | String | False | Mdm Serial |
+# | mdm_encrypted | Bool | False | Mdm Encrypted |
+# | mdm_pinlock | Bool | False | Mdm Pinlock |
+# | mdm_jail_broken | Bool | False | Mdm JailBroken |
+# | mdm_imei | String | False | Mdm IMEI |
+# | mdm_phone_number | String | False | Mdm PhoneNumber |
+# | group_name | String | False | Name of the referenced endpoint identity group, alternative to `group_id` |
+# | profile_name | String | False | Name of the referenced profiler profile, alternative to `profile_id` |
+#
+# YAML: ise.identity_management.endpoint (list, objects identified by name)
+#
+
+locals {
+  # Defaults for endpoint (module defaults merged with user defaults)
+  defaults_endpoint = try(local.defaults.ise.identity_management.endpoint, {})
+
+  # Endpoint objects with defaults
+  endpoint = [for item in try(local.ise.identity_management.endpoint, []) : merge(
+    local.defaults_endpoint,
+    item
+  )]
+}
+
+resource "ise_endpoint" "endpoint" {
+  for_each = { for item in local.endpoint : item.name => item }
+
+  name                              = try(each.value.name, null)
+  description                       = try(each.value.description, null)
+  mac                               = try(each.value.mac, null)
+  group_id                          = try(each.value.group_id, null) != null ? each.value.group_id : try(each.value.group_name, null) != null ? local.endpoint_identity_group_ids[each.value.group_name] : null
+  profile_id                        = try(each.value.profile_id, null) != null ? each.value.profile_id : try(each.value.profile_name, null) != null ? local.profiler_profile_ids[each.value.profile_name] : null
+  static_profile_assignment         = try(each.value.static_profile_assignment, null)
+  static_profile_assignment_defined = try(each.value.static_profile_assignment_defined, null)
+  static_group_assignment           = try(each.value.static_group_assignment, null)
+  static_group_assignment_defined   = try(each.value.static_group_assignment_defined, null)
+  custom_attributes                 = try(each.value.custom_attributes, null)
+  identity_store                    = try(each.value.identity_store, null)
+  identity_store_id                 = try(each.value.identity_store_id, null)
+  portal_user                       = try(each.value.portal_user, null)
+  mdm_server_name                   = try(each.value.mdm_server_name, null)
+  mdm_reachable                     = try(each.value.mdm_reachable, null)
+  mdm_enrolled                      = try(each.value.mdm_enrolled, null)
+  mdm_compliance_status             = try(each.value.mdm_compliance_status, null)
+  mdm_os                            = try(each.value.mdm_os, null)
+  mdm_manufacturer                  = try(each.value.mdm_manufacturer, null)
+  mdm_model                         = try(each.value.mdm_model, null)
+  mdm_serial                        = try(each.value.mdm_serial, null)
+  mdm_encrypted                     = try(each.value.mdm_encrypted, null)
+  mdm_pinlock                       = try(each.value.mdm_pinlock, null)
+  mdm_jail_broken                   = try(each.value.mdm_jail_broken, null)
+  mdm_imei                          = try(each.value.mdm_imei, null)
+  mdm_phone_number                  = try(each.value.mdm_phone_number, null)
+}
+
+#
+# ==================================================================
+# ENDPOINT CUSTOM ATTRIBUTE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | attribute_name | String | True | The name of the attribute |
+# | attribute_type | String | True | Attribute type |
+#
+# YAML: ise.identity_management.endpoint_custom_attribute (list, objects identified by attribute_name)
+#
+
+locals {
+  # Defaults for endpoint custom attribute (module defaults merged with user defaults)
+  defaults_endpoint_custom_attribute = try(local.defaults.ise.identity_management.endpoint_custom_attribute, {})
+
+  # Endpoint custom attribute objects with defaults
+  endpoint_custom_attribute = [for item in try(local.ise.identity_management.endpoint_custom_attribute, []) : merge(
+    local.defaults_endpoint_custom_attribute,
+    item
+  )]
+}
+
+resource "ise_endpoint_custom_attribute" "endpoint_custom_attribute" {
+  for_each = { for item in local.endpoint_custom_attribute : item.attribute_name => item }
+
+  attribute_name = try(each.value.attribute_name, null)
+  attribute_type = try(each.value.attribute_type, null)
+}
+
+#
+# ==================================================================
+# ENDPOINT IDENTITY GROUP
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -487,28 +393,329 @@ resource "ise_active_directory_add_groups" "active_directory_add_groups" {
 # | description | String | False | Description |
 # | system_defined | Bool | False | System defined endpoint identity group |
 # | parent_endpoint_identity_group_id | String | False | Parent endpoint identity group ID |
+# | parent_endpoint_identity_group_name | String | False | Name of the referenced endpoint identity group, alternative to `parent_endpoint_identity_group_id` |
+#
+# YAML: ise.identity_management.endpoint_identity_group (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for endpoint identity group (module defaults merged with user defaults)
   defaults_endpoint_identity_group = try(local.defaults.ise.identity_management.endpoint_identity_group, {})
 
-  # Endpoint Identity Group (with defaults)
+  # Endpoint identity group objects with defaults
   endpoint_identity_group = [for item in try(local.ise.identity_management.endpoint_identity_group, []) : merge(
-    local.defaults_endpoint_identity_group, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_endpoint_identity_group,
+    item
   )]
 }
 
-# Create endpoint identity group
-resource "ise_endpoint_identity_group" "endpoint_identity_group" {
-  for_each = { for item in try(local.endpoint_identity_group, []) : item.name => item }
+locals {
+  # Managed endpoint identity group objects each object refers to. Objects are
+  # created in tiers so that referenced objects exist before the objects using them.
+  endpoint_identity_group_self_references = {
+    for item in local.endpoint_identity_group : item.name => [
+      for n in distinct(compact(flatten([
+        [for v0 in [item] : try(v0.parent_endpoint_identity_group_name, null) if try(v0.parent_endpoint_identity_group_id, null) == null],
+      ]))) : n if contains([for i in local.endpoint_identity_group : i.name], n)
+    ]
+  }
+  endpoint_identity_group_tier0    = [for k, refs in local.endpoint_identity_group_self_references : k if length(refs) == 0]
+  endpoint_identity_group_tier1    = [for k, refs in local.endpoint_identity_group_self_references : k if !contains(concat(local.endpoint_identity_group_tier0), k) && alltrue([for n in refs : contains(concat(local.endpoint_identity_group_tier0), n)])]
+  endpoint_identity_group_tier2    = [for k, refs in local.endpoint_identity_group_self_references : k if !contains(concat(local.endpoint_identity_group_tier0, local.endpoint_identity_group_tier1), k) && alltrue([for n in refs : contains(concat(local.endpoint_identity_group_tier0, local.endpoint_identity_group_tier1), n)])]
+  endpoint_identity_group_tier3    = [for k, refs in local.endpoint_identity_group_self_references : k if !contains(concat(local.endpoint_identity_group_tier0, local.endpoint_identity_group_tier1, local.endpoint_identity_group_tier2), k) && alltrue([for n in refs : contains(concat(local.endpoint_identity_group_tier0, local.endpoint_identity_group_tier1, local.endpoint_identity_group_tier2), n)])]
+  endpoint_identity_group_untiered = [for k in keys(local.endpoint_identity_group_self_references) : k if !contains(concat(local.endpoint_identity_group_tier0, local.endpoint_identity_group_tier1, local.endpoint_identity_group_tier2, local.endpoint_identity_group_tier3), k)]
+}
 
-  # General attributes
-  name = try(each.value.name, null)
+resource "terraform_data" "endpoint_identity_group_tiers" {
+  lifecycle {
+    precondition {
+      condition     = length(local.endpoint_identity_group_untiered) == 0
+      error_message = "Endpoint identity group objects refer to each other in a loop or more than 3 levels deep: ${join(", ", local.endpoint_identity_group_untiered)}"
+    }
+  }
+}
+
+resource "ise_endpoint_identity_group" "endpoint_identity_group" {
+  for_each = { for item in local.endpoint_identity_group : item.name => item if contains(local.endpoint_identity_group_tier0, item.name) }
+
+  name                              = try(each.value.name, null)
+  description                       = try(each.value.description, null)
+  system_defined                    = try(each.value.system_defined, null)
+  parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null) != null ? each.value.parent_endpoint_identity_group_id : try(each.value.parent_endpoint_identity_group_name, null) != null ? local.endpoint_identity_group_ids_tier0[each.value.parent_endpoint_identity_group_name] : null
+}
+
+resource "ise_endpoint_identity_group" "endpoint_identity_group_tier1" {
+  for_each = { for item in local.endpoint_identity_group : item.name => item if contains(local.endpoint_identity_group_tier1, item.name) }
+
+  name                              = try(each.value.name, null)
+  description                       = try(each.value.description, null)
+  system_defined                    = try(each.value.system_defined, null)
+  parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null) != null ? each.value.parent_endpoint_identity_group_id : try(each.value.parent_endpoint_identity_group_name, null) != null ? local.endpoint_identity_group_ids_tier1[each.value.parent_endpoint_identity_group_name] : null
+}
+
+resource "ise_endpoint_identity_group" "endpoint_identity_group_tier2" {
+  for_each = { for item in local.endpoint_identity_group : item.name => item if contains(local.endpoint_identity_group_tier2, item.name) }
+
+  name                              = try(each.value.name, null)
+  description                       = try(each.value.description, null)
+  system_defined                    = try(each.value.system_defined, null)
+  parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null) != null ? each.value.parent_endpoint_identity_group_id : try(each.value.parent_endpoint_identity_group_name, null) != null ? local.endpoint_identity_group_ids_tier2[each.value.parent_endpoint_identity_group_name] : null
+}
+
+resource "ise_endpoint_identity_group" "endpoint_identity_group_tier3" {
+  for_each = { for item in local.endpoint_identity_group : item.name => item if contains(local.endpoint_identity_group_tier3, item.name) }
+
+  name                              = try(each.value.name, null)
+  description                       = try(each.value.description, null)
+  system_defined                    = try(each.value.system_defined, null)
+  parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null) != null ? each.value.parent_endpoint_identity_group_id : try(each.value.parent_endpoint_identity_group_name, null) != null ? local.endpoint_identity_group_ids_tier3[each.value.parent_endpoint_identity_group_name] : null
+}
+
+
+#
+# ------------------------------------------------------------------
+# ENDPOINT IDENTITY GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to endpoint identity group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  endpoint_identity_group_referenced_names = distinct(compact(flatten([
+    [for item in local.endpoint : [for v0 in [item] : try(v0.group_name, null) if try(v0.group_id, null) == null]],
+    [for item in local.endpoint_identity_group : [for v0 in [item] : try(v0.parent_endpoint_identity_group_name, null) if try(v0.parent_endpoint_identity_group_id, null) == null]],
+  ])))
+  endpoint_identity_group_managed_names = [for item in local.endpoint_identity_group : item.name]
+}
+
+data "ise_endpoint_identity_group" "endpoint_identity_group" {
+  for_each = toset([for n in local.endpoint_identity_group_referenced_names : n if !contains(local.endpoint_identity_group_managed_names, n)])
+
+  name = each.key
+}
+
+locals {
+  endpoint_identity_group_lookup_ids = { for k, v in data.ise_endpoint_identity_group.endpoint_identity_group : k => v.id }
+  endpoint_identity_group_ids_tier0 = merge(
+    local.endpoint_identity_group_lookup_ids,
+  )
+  endpoint_identity_group_ids_tier1 = merge(
+    local.endpoint_identity_group_lookup_ids,
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group : k => v.id },
+  )
+  endpoint_identity_group_ids_tier2 = merge(
+    local.endpoint_identity_group_lookup_ids,
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier1 : k => v.id },
+  )
+  endpoint_identity_group_ids_tier3 = merge(
+    local.endpoint_identity_group_lookup_ids,
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier1 : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier2 : k => v.id },
+  )
+  endpoint_identity_group_ids = merge(
+    local.endpoint_identity_group_lookup_ids,
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier1 : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier2 : k => v.id },
+    { for k, v in ise_endpoint_identity_group.endpoint_identity_group_tier3 : k => v.id },
+  )
+}
+
+#
+# ==================================================================
+# IDENTITY SOURCE SEQUENCE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the identity source sequence |
+# | description | String | False | Description |
+# | break_on_store_fail | Bool | True | Do not access other stores in the sequence if a selected identity store cannot be accessed for authentication |
+# | certificate_authentication_profile | String | False | Certificate Authentication Profile, empty if doesn't exist |
+# | identity_sources | List | True |  |
+#
+# YAML: ise.identity_management.identity_source_sequence (list, objects identified by name)
+#
+
+locals {
+  # Defaults for identity source sequence (module defaults merged with user defaults)
+  defaults_identity_source_sequence = try(local.defaults.ise.identity_management.identity_source_sequence, {})
+
+  # Identity source sequence objects with defaults
+  identity_source_sequence = [for item in try(local.ise.identity_management.identity_source_sequence, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_identity_source_sequence : k => v if !contains(["identity_sources"], k) },
+    item,
+    { for k in ["identity_sources"] : k => [for i in item[k] : merge(try(local.defaults_identity_source_sequence[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_identity_source_sequence" "identity_source_sequence" {
+  for_each = { for item in local.identity_source_sequence : item.name => item }
+
+  name                               = try(each.value.name, null)
+  description                        = try(each.value.description, null)
+  break_on_store_fail                = try(each.value.break_on_store_fail, null)
+  certificate_authentication_profile = try(each.value.certificate_authentication_profile, null)
+  identity_sources = try(each.value.identity_sources, null) == null ? null : [for i1 in each.value.identity_sources : {
+    name  = try(i1.name, null)
+    order = try(i1.order, null)
+  }]
+}
+
+#
+# ==================================================================
+# INTERNAL USER
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the internal user |
+# | password | String | False | The password of the internal user. Required when creating a new user. When managing existing (brownfield) users the password can be omitted and the existing password will be preserved. |
+# | change_password | Bool | False | Requires the user to change the password |
+# | email | String | False | Email address |
+# | account_name_alias | String | False | The Account Name Alias will be used to send email notifications about password expiration. This field is only supported from ISE 3.2. |
+# | enable_password | String | False | This field is added in ISE 2.0 to support TACACS+ |
+# | enabled | Bool | False | Whether the user is enabled/disabled |
+# | password_never_expires | Bool | False | Set to `true` to indicate the user password never expires. This will not apply to Users who are also ISE Admins. This field is only supported from ISE 3.2. |
+# | first_name | String | False | First name of the internal user |
+# | last_name | String | False | Last name of the internal user |
+# | identity_groups | String | False | Comma separated list of identity group IDs. |
+# | custom_attributes | Map | False | Key value map of custom attributes. The keys must be defined in the ISE identity store configuration. |
+# | password_id_store | String | False | The ID store where the internal user's password is kept |
+# | description | String | False | Description |
+# | identity_group_names | List | False | Names of the referenced user identity group, alternative to `identity_groups` |
+#
+# YAML: ise.identity_management.internal_user (list, objects identified by name)
+#
+
+locals {
+  # Defaults for internal user (module defaults merged with user defaults)
+  defaults_internal_user = try(local.defaults.ise.identity_management.internal_user, {})
+
+  # Internal user objects with defaults
+  internal_user = [for item in try(local.ise.identity_management.internal_user, []) : merge(
+    local.defaults_internal_user,
+    item
+  )]
+}
+
+resource "ise_internal_user" "internal_user" {
+  for_each = { for item in local.internal_user : item.name => item }
+
+  name                   = try(each.value.name, null)
+  password               = sensitive(try(each.value.password, null))
+  change_password        = sensitive(try(each.value.change_password, null))
+  email                  = try(each.value.email, null)
+  account_name_alias     = try(each.value.account_name_alias, null)
+  enable_password        = sensitive(try(each.value.enable_password, null))
+  enabled                = try(each.value.enabled, null)
+  password_never_expires = try(each.value.password_never_expires, null)
+  first_name             = try(each.value.first_name, null)
+  last_name              = try(each.value.last_name, null)
+  identity_groups        = try(each.value.identity_groups, null) != null ? each.value.identity_groups : try(each.value.identity_group_names, null) != null ? join(",", sort([for n in each.value.identity_group_names : local.user_identity_group_ids[n]])) : null
+  custom_attributes      = try(each.value.custom_attributes, null)
+  password_id_store      = try(each.value.password_id_store, null)
+  description            = try(each.value.description, null)
+
+  lifecycle {
+    ignore_changes = [password, enable_password]
+  }
+}
+
+#
+# ==================================================================
+# USER IDENTITY GROUP
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the user identity group |
+# | description | String | False | Description |
+# | parent | String | False | Parent user identity group, e.g. `NAC Group:NAC:IdentityGroups:User Identity Groups` |
+#
+# YAML: ise.identity_management.user_identity_group (list, objects identified by name)
+#
+
+locals {
+  # Defaults for user identity group (module defaults merged with user defaults)
+  defaults_user_identity_group = try(local.defaults.ise.identity_management.user_identity_group, {})
+
+  # User identity group objects with defaults
+  user_identity_group = [for item in try(local.ise.identity_management.user_identity_group, []) : merge(
+    local.defaults_user_identity_group,
+    item
+  )]
+}
+
+resource "ise_user_identity_group" "user_identity_group" {
+  for_each = { for item in local.user_identity_group : item.name => item }
+
+  name        = try(each.value.name, null)
   description = try(each.value.description, null)
-  system_defined = try(each.value.system_defined, null)
-  parent_endpoint_identity_group_id = try(each.value.parent_endpoint_identity_group_id, null)
+  parent      = try(each.value.parent, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# USER IDENTITY GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to user identity group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  user_identity_group_referenced_names = distinct(compact(flatten([
+    [for item in local.internal_user : [for v0 in [item] : try(v0.identity_group_names, []) if try(v0.identity_groups, null) == null]],
+  ])))
+  user_identity_group_managed_names = [for item in local.user_identity_group : item.name]
+}
+
+data "ise_user_identity_group" "user_identity_group" {
+  for_each = toset([for n in local.user_identity_group_referenced_names : n if !contains(local.user_identity_group_managed_names, n)])
+
+  name = each.key
+}
+
+locals {
+  user_identity_group_lookup_ids = { for k, v in data.ise_user_identity_group.user_identity_group : k => v.id }
+  user_identity_group_ids = merge(
+    local.user_identity_group_lookup_ids,
+    { for k, v in ise_user_identity_group.user_identity_group : k => v.id },
+  )
+}
+
+
+#
+# ------------------------------------------------------------------
+# PROFILER PROFILE REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to profiler profile objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  profiler_profile_referenced_names = distinct(compact(flatten([
+    [for item in local.endpoint : [for v0 in [item] : try(v0.profile_name, null) if try(v0.profile_id, null) == null]],
+  ])))
+  profiler_profile_managed_names = []
+}
+
+data "ise_profiler_profile" "profiler_profile" {
+  for_each = toset([for n in local.profiler_profile_referenced_names : n if !contains(local.profiler_profile_managed_names, n)])
+
+  name = each.key
+}
+
+locals {
+  profiler_profile_lookup_ids = { for k, v in data.ise_profiler_profile.profiler_profile : k => v.id }
+  profiler_profile_ids = merge(
+    local.profiler_profile_lookup_ids,
+  )
 }

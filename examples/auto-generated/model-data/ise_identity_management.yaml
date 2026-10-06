@@ -18,13 +18,12 @@ ise:
       - name: cisco.local/operators
         sid: S-1-5-32-548
         type: GLOBAL
-      join_point_id: 73808580-b6e6-11ee-8960-de6d7692bc40
       name: cisco.local
     active_directory_join_domain_with_all_nodes:
     - additional_data:
       - name: username
         value: administrator
-      join_point_id: 73808580-b6e6-11ee-8960-de6d7692bc40
+      join_point_name: cisco.local
     active_directory_join_point:
     - ad_scopes_names: Default_Scope
       aging_time: 5
@@ -81,30 +80,17 @@ ise:
     - custom_attributes:
         key1: value1
       description: My endpoint
-      group_id: 3a88eec0-8c00-11e6-996c-525400b48521
-      identity_store: null
-      identity_store_id: null
+      group_name: Group1
       mac: 00:11:22:33:44:55
-      mdm_compliance_status: null
-      mdm_encrypted: null
-      mdm_enrolled: null
-      mdm_imei: null
-      mdm_jail_broken: null
-      mdm_manufacturer: null
-      mdm_model: null
-      mdm_os: null
-      mdm_phone_number: null
-      mdm_pinlock: null
-      mdm_reachable: null
-      mdm_serial: null
-      mdm_server_name: null
       name: 00:11:22:33:44:55
-      portal_user: null
       profile_id: 3a91a150-8c00-11e6-996c-525400b48521
       static_group_assignment: true
       static_group_assignment_defined: true
       static_profile_assignment: true
       static_profile_assignment_defined: true
+    endpoint_custom_attribute:
+    - attribute_name: isMobile
+      attribute_type: Boolean
     endpoint_identity_group:
     - description: My endpoint identity group
       name: Group1
@@ -121,13 +107,15 @@ ise:
     internal_user:
     - account_name_alias: User 1
       change_password: true
-      custom_attributes: null
+      custom_attributes:
+        key1: value1
       description: My first Terraform user
       email: aaa@cisco.com
       enable_password: Cisco123
       enabled: true
       first_name: John
-      identity_groups: d68f6180-66a2-11ee-9cc1-9eb2a3ecc82a
+      identity_group_names:
+      - Group1
       last_name: Doe
       name: UserTF
       password: Cisco123

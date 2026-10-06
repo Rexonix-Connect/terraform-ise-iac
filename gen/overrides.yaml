@@ -1,0 +1,269 @@
+---
+# Module-specific customizations applied on top of the provider definitions
+# (terraform-provider-ise gen/definitions). The generator reads this file in
+# addition to the provider definitions. Everything not listed here is generated
+# 1:1 from the provider definitions.
+#
+# Top-level settings:
+#   self_reference_tiers: How many levels of objects referring to objects of the
+#                         same type (e.g. library conditions using other library
+#                         conditions) can be created in a single apply.
+#
+# Per-resource settings (key = provider definition name):
+#   skip:       true -> the resource is not exposed in the module.
+#   singleton:  true -> one object per ISE (YAML value is a map, not a list).
+#   key:        YAML keys whose values identify an object, joined with "/" in
+#               the Terraform resource address. Default: [name].
+#   exclude:    Provider attributes the module never sets.
+#   references: Attributes holding IDs of other ISE objects. In YAML these can be
+#               given by name instead; the module resolves the name to an ID from
+#               the objects it manages or by looking the name up in ISE.
+#                 <attribute path>:   e.g. policy_set_id, or children.id for an
+#                                     attribute inside a nested list
+#                   target:    provider definition name of the referenced object
+#                   name:      YAML key holding the referenced name
+#                   when:      only resolve the name if these YAML keys match
+#                   recursive: true -> also apply to nested lists of the same
+#                              name at deeper levels (children.children.id, ...)
+#                   format:    comma_list -> the attribute holds a comma separated
+#                              list of IDs and the YAML key holds a list of names
+#   ranks:      Rule/policy set order. The rank attribute is not set on the
+#               resource itself (ISE only accepts ranks in strict sequence on
+#               create) but applied afterwards through the bulk rank resource.
+#                 resource: provider definition name of the bulk rank resource
+#                 list:     list attribute of the bulk rank resource
+#                 group_by: reference attribute grouping objects (one bulk rank
+#                           resource per group), e.g. policy_set_id
+
+self_reference_tiers: 4
+
+resources:
+  # ----------------------------------------------------------------------------
+  # Device Administration
+  # ----------------------------------------------------------------------------
+  device_admin_condition:
+    references:
+      children.id: &device_admin_condition_child_reference
+        target: device_admin_condition
+        name: name
+        when: { condition_type: ConditionReference }
+        recursive: true
+
+  device_admin_policy_set:
+    references:
+      condition_id: &device_admin_condition_reference
+        target: device_admin_condition
+        name: condition_name
+        when: { condition_type: ConditionReference }
+      children.id: *device_admin_condition_child_reference
+    ranks:
+      resource: device_admin_policy_set_update_ranks
+      list: policies
+
+  device_admin_authentication_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: &device_admin_policy_set_reference
+        target: device_admin_policy_set
+        name: policy_set_name
+      condition_id: *device_admin_condition_reference
+      children.id: *device_admin_condition_child_reference
+    ranks:
+      resource: device_admin_authentication_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  device_admin_authorization_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: *device_admin_policy_set_reference
+      condition_id: *device_admin_condition_reference
+      children.id: *device_admin_condition_child_reference
+    ranks:
+      resource: device_admin_authorization_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  device_admin_authorization_exception_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: *device_admin_policy_set_reference
+      condition_id: *device_admin_condition_reference
+      children.id: *device_admin_condition_child_reference
+    ranks:
+      resource: device_admin_authorization_exception_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  device_admin_authorization_global_exception_rule:
+    references:
+      condition_id: *device_admin_condition_reference
+      children.id: *device_admin_condition_child_reference
+    ranks:
+      resource: device_admin_authorization_global_exception_rule_update_ranks
+      list: rules
+
+  # Single rank updates are covered by the bulk rank resources above
+  device_admin_policy_set_update_rank: { skip: true }
+  device_admin_authentication_rule_update_rank: { skip: true }
+  device_admin_authorization_rule_update_rank: { skip: true }
+  device_admin_authorization_exception_rule_update_rank: { skip: true }
+  device_admin_authorization_global_exception_rule_update_rank: { skip: true }
+
+  # ----------------------------------------------------------------------------
+  # Network Access
+  # ----------------------------------------------------------------------------
+  network_access_condition:
+    references:
+      children.id: &network_access_condition_child_reference
+        target: network_access_condition
+        name: name
+        when: { condition_type: ConditionReference }
+        recursive: true
+
+  network_access_policy_set:
+    references:
+      condition_id: &network_access_condition_reference
+        target: network_access_condition
+        name: condition_name
+        when: { condition_type: ConditionReference }
+      children.id: *network_access_condition_child_reference
+    ranks:
+      resource: network_access_policy_set_update_ranks
+      list: policies
+
+  network_access_authentication_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: &network_access_policy_set_reference
+        target: network_access_policy_set
+        name: policy_set_name
+      condition_id: *network_access_condition_reference
+      children.id: *network_access_condition_child_reference
+    ranks:
+      resource: network_access_authentication_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  network_access_authorization_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: *network_access_policy_set_reference
+      condition_id: *network_access_condition_reference
+      children.id: *network_access_condition_child_reference
+    ranks:
+      resource: network_access_authorization_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  network_access_authorization_exception_rule:
+    key: [policy_set_name, name]
+    references:
+      policy_set_id: *network_access_policy_set_reference
+      condition_id: *network_access_condition_reference
+      children.id: *network_access_condition_child_reference
+    ranks:
+      resource: network_access_authorization_exception_rule_update_ranks
+      list: rules
+      group_by: policy_set_id
+
+  network_access_authorization_global_exception_rule:
+    references:
+      condition_id: *network_access_condition_reference
+      children.id: *network_access_condition_child_reference
+    ranks:
+      resource: network_access_authorization_global_exception_rule_update_ranks
+      list: rules
+
+  network_access_policy_set_update_rank: { skip: true }
+  network_access_authentication_rule_update_rank: { skip: true }
+  network_access_authorization_rule_update_rank: { skip: true }
+  network_access_authorization_exception_rule_update_rank: { skip: true }
+  network_access_authorization_global_exception_rule_update_rank: { skip: true }
+
+  # ----------------------------------------------------------------------------
+  # Identity Management
+  # ----------------------------------------------------------------------------
+  active_directory_add_groups:
+    references:
+      join_point_id:
+        target: active_directory_join_point
+        name: name
+
+  active_directory_join_domain_with_all_nodes:
+    key: [join_point_name]
+    references:
+      join_point_id:
+        target: active_directory_join_point
+        name: join_point_name
+
+  endpoint:
+    references:
+      group_id:
+        target: endpoint_identity_group
+        name: group_name
+      profile_id:
+        target: profiler_profile
+        name: profile_name
+
+  endpoint_custom_attribute:
+    key: [attribute_name]
+
+  endpoint_identity_group:
+    references:
+      parent_endpoint_identity_group_id:
+        target: endpoint_identity_group
+        name: parent_endpoint_identity_group_name
+
+  internal_user:
+    references:
+      identity_groups:
+        target: user_identity_group
+        name: identity_group_names
+        format: comma_list
+
+  # ----------------------------------------------------------------------------
+  # System
+  # ----------------------------------------------------------------------------
+  license_tier_state:
+    singleton: true
+
+  # ----------------------------------------------------------------------------
+  # TrustSec
+  # ----------------------------------------------------------------------------
+  trustsec_egress_matrix_cell:
+    key: [matrix_name, source_sgt_name, destination_sgt_name]
+    references:
+      source_sgt_id:
+        target: trustsec_security_group
+        name: source_sgt_name
+      destination_sgt_id:
+        target: trustsec_security_group
+        name: destination_sgt_name
+      matrix_id:
+        target: trustsec_matrix
+        name: matrix_name
+
+  trustsec_egress_matrix_cell_default:
+    singleton: true
+
+  trustsec_egress_push_matrix:
+    singleton: true
+
+  trustsec_ip_to_sgt_mapping:
+    references:
+      sgt:
+        target: trustsec_security_group
+        name: sgt_name
+      mapping_group:
+        target: trustsec_ip_to_sgt_mapping_group
+        name: mapping_group_name
+
+  trustsec_ip_to_sgt_mapping_group:
+    references:
+      sgt:
+        target: trustsec_security_group
+        name: sgt_name
+
+  trustsec_work_process_settings:
+    singleton: true

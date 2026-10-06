@@ -1,0 +1,14 @@
+terraform {
+  required_version = ">= 1.8.0"
+
+  required_providers {
+    ise = {
+      source  = "CiscoDevNet/ise"
+      version = "~> {{ provider_version }}"
+    }
+    utils = {
+      source  = "netascode/utils"
+      version = "~> 2.0"
+    }
+  }
+}
