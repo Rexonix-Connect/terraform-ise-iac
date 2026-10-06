@@ -79,6 +79,14 @@ without rank and then sets all ranks of a policy set at once
 (`ise_*_update_ranks` resources). Objects without `rank` and default
 objects keep their position.
 
+### Secrets
+
+ISE does not return secrets (passwords, shared secrets, keys), so the YAML value
+is their only source. Changing a secret in YAML rotates it in ISE. After an
+import of existing objects, the first apply sets the secrets given in YAML;
+secrets left out of YAML are not touched. Use `!env` to keep secrets out of the
+YAML files.
+
 ### Single objects
 
 `license_tier_state`, `trustsec_egress_matrix_cell_default`,

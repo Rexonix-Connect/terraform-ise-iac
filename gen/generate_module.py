@@ -116,7 +116,12 @@ def is_hardcoded_attribute(attr: Dict[str, Any]) -> bool:
 
 
 def is_ignore_changes_attribute(attr: Dict[str, Any]) -> bool:
-    """Check if attribute should be included in ignore_changes lifecycle option."""
+    """Check if attribute should be included in ignore_changes lifecycle option.
+
+    Secrets are never ignored: ISE does not return them, so the YAML value is
+    their only source and changing it rotates the secret."""
+    if is_sensitive_attribute(attr):
+        return False
     if "write_only" in attr and attr["write_only"]:
         logger.debug(
             f"Attribute {attr['name']} is write-only thus marked for ignore_changes."

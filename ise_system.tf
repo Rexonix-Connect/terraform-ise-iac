@@ -82,6 +82,6 @@ resource "ise_repository" "repository" {
   enable_pki  = try(each.value.enable_pki, null)
 
   lifecycle {
-    ignore_changes = [password, enable_pki]
+    ignore_changes = [enable_pki]
   }
 }

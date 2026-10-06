@@ -134,10 +134,6 @@ resource "ise_network_device" "network_device" {
   trustsec_send_configuration_to_device                       = try(each.value.trustsec_send_configuration_to_device, null)
   trustsec_send_configuration_to_device_using                 = try(each.value.trustsec_send_configuration_to_device_using, null)
   trustsec_coa_source_host                                    = try(each.value.trustsec_coa_source_host, null)
-
-  lifecycle {
-    ignore_changes = [authentication_encryption_key, authentication_message_authenticator_code_key, authentication_radius_shared_secret, authentication_second_radius_shared_secret, snmp_auth_password, snmp_privacy_password, tacacs_shared_secret, trustsec_device_password, trustsec_rest_api_password, trustsec_enable_mode_password, trustsec_exec_mode_password]
-  }
 }
 
 #

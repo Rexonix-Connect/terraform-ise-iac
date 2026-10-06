@@ -620,10 +620,6 @@ resource "ise_internal_user" "internal_user" {
   custom_attributes      = try(each.value.custom_attributes, null)
   password_id_store      = try(each.value.password_id_store, null)
   description            = try(each.value.description, null)
-
-  lifecycle {
-    ignore_changes = [password, enable_password]
-  }
 }
 
 #
