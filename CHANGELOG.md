@@ -2,7 +2,7 @@
 
 - Initial release
 - Generate the module for ISE provider `0.5.0` (`~> 0.5.0`), adding endpoint custom attributes, network access dictionary attributes, TrustSec matrices, TrustSec work process settings and SXP connections, VPNs and local bindings
-- Refer to other objects by name instead of ID (policy sets, library conditions, identity groups, Active Directory join points, security groups, TrustSec matrices and mapping groups); names of objects not managed by the module are looked up in ISE
+- Refer to other objects by name instead of ID (policy sets, library conditions, identity groups, Active Directory join points, security groups, TrustSec matrices and mapping groups); names of objects not managed by the module are looked up in ISE, except Active Directory join points, which must then be given by ID
 - Create library conditions and endpoint identity groups that use objects of the same type in tiers, up to 4 levels
 - Identify rules by policy set and rule name, and apply `rank` of rules and policy sets through the provider's bulk rank resources; the single and bulk rank resources are no longer configured directly
 - `license_tier_state`, `trustsec_egress_matrix_cell_default`, `trustsec_egress_push_matrix` and `trustsec_work_process_settings` are single YAML objects instead of lists
