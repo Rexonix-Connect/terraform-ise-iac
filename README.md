@@ -39,7 +39,8 @@ ise:
   name of the generated module code (`ise_<section>.tf`). The header of each
   resource in these files lists all YAML keys.
 - YAML can be split over many files and directories (`yaml_files`,
-  `yaml_directories`), or passed as a Terraform value (`model`).
+  `yaml_directories`), or passed as a Terraform value (`model`). Lists of the
+  same resource from several files are combined.
 - `!env NAME` reads a value from an environment variable, e.g. for secrets.
 - `defaults` sets default values per resource, see `defaults/ise_defaults.yaml`.
 - Complete examples: `examples/references` (hand-written) and
