@@ -1096,6 +1096,13 @@ def generate_schema_files(
         info.update({k: definition[k] for k in flags if k in definition})
         # terraform import ID: references, identifying attributes, then the ID
         attrs = [ensure_name_in_attribute(dict(a)) for a in definition.get("attributes", [])]
+        # values the provider always sends; they tell apart resources that share
+        # an API path (e.g. RADIUS and TACACS allowed protocols)
+        info["constants"] = [
+            {"path": list(a.get("data_path", [])) + [a["model_name"]], "value": a["value"]}
+            for a in attrs
+            if "value" in a and "model_name" in a
+        ]
         if any(a.get("reference") for a in attrs):
             info["import_parts"] = [
                 a["name"] for a in attrs if a.get("reference") or a.get("id")
