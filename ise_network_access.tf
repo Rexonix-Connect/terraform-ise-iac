@@ -348,7 +348,7 @@ resource "ise_downloadable_acl" "downloadable_acl" {
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `condition_attribute_name` is `EndPointPolicy`) |
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
@@ -361,6 +361,7 @@ resource "ise_downloadable_acl" "downloadable_acl" {
 # | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
 # | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_authentication_rule (list, objects identified by policy_set_name/name)
 # The rank attribute is applied through ise_network_access_authentication_rule_update_ranks.
@@ -390,7 +391,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
   condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
   condition_is_negate        = try(each.value.condition_is_negate, null)
   condition_attribute_name   = try(each.value.condition_attribute_name, null)
-  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null) != null && !can(regex(local.id_regexp, each.value.condition_attribute_value)) && try(each.value.condition_attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.condition_attribute_value] : try(each.value.condition_attribute_value, null)
   condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
   condition_operator         = try(each.value.condition_operator, null)
@@ -399,7 +400,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -408,7 +409,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -417,7 +418,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -426,7 +427,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -435,7 +436,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -444,7 +445,7 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -458,6 +459,10 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
   if_auth_fail         = try(each.value.if_auth_fail, null)
   if_process_fail      = try(each.value.if_process_fail, null)
   if_user_not_found    = try(each.value.if_user_not_found, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -502,7 +507,7 @@ resource "ise_network_access_authentication_rule_update_ranks" "network_access_a
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `condition_attribute_name` is `EndPointPolicy`) |
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
@@ -513,6 +518,7 @@ resource "ise_network_access_authentication_rule_update_ranks" "network_access_a
 # | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
 # | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_authorization_exception_rule (list, objects identified by policy_set_name/name)
 # The rank attribute is applied through ise_network_access_authorization_exception_rule_update_ranks.
@@ -542,7 +548,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
   condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
   condition_is_negate        = try(each.value.condition_is_negate, null)
   condition_attribute_name   = try(each.value.condition_attribute_name, null)
-  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null) != null && !can(regex(local.id_regexp, each.value.condition_attribute_value)) && try(each.value.condition_attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.condition_attribute_value] : try(each.value.condition_attribute_value, null)
   condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
   condition_operator         = try(each.value.condition_operator, null)
@@ -551,7 +557,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -560,7 +566,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -569,7 +575,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -578,7 +584,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -587,7 +593,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -596,7 +602,7 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -608,6 +614,10 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -650,7 +660,7 @@ resource "ise_network_access_authorization_exception_rule_update_ranks" "network
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `condition_attribute_name` is `EndPointPolicy`) |
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
@@ -660,6 +670,7 @@ resource "ise_network_access_authorization_exception_rule_update_ranks" "network
 # | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_network_access_authorization_global_exception_rule_update_ranks` |
 # | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_authorization_global_exception_rule (list, objects identified by name)
 # The rank attribute is applied through ise_network_access_authorization_global_exception_rule_update_ranks.
@@ -687,7 +698,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
   condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
   condition_is_negate        = try(each.value.condition_is_negate, null)
   condition_attribute_name   = try(each.value.condition_attribute_name, null)
-  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null) != null && !can(regex(local.id_regexp, each.value.condition_attribute_value)) && try(each.value.condition_attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.condition_attribute_value] : try(each.value.condition_attribute_value, null)
   condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
   condition_operator         = try(each.value.condition_operator, null)
@@ -696,7 +707,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -705,7 +716,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -714,7 +725,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -723,7 +734,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -732,7 +743,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -741,7 +752,7 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -753,6 +764,10 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -794,7 +809,7 @@ resource "ise_network_access_authorization_global_exception_rule_update_ranks" "
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `condition_attribute_name` is `EndPointPolicy`) |
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
@@ -805,6 +820,7 @@ resource "ise_network_access_authorization_global_exception_rule_update_ranks" "
 # | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
 # | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_authorization_rule (list, objects identified by policy_set_name/name)
 # The rank attribute is applied through ise_network_access_authorization_rule_update_ranks.
@@ -834,7 +850,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
   condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
   condition_is_negate        = try(each.value.condition_is_negate, null)
   condition_attribute_name   = try(each.value.condition_attribute_name, null)
-  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null) != null && !can(regex(local.id_regexp, each.value.condition_attribute_value)) && try(each.value.condition_attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.condition_attribute_value] : try(each.value.condition_attribute_value, null)
   condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
   condition_operator         = try(each.value.condition_operator, null)
@@ -843,7 +859,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -852,7 +868,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -861,7 +877,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -870,7 +886,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -879,7 +895,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -888,7 +904,7 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -900,6 +916,10 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -941,12 +961,13 @@ resource "ise_network_access_authorization_rule_update_ranks" "network_access_au
 # | condition_type | String | True | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
 # | is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | attribute_name | String | False | Dictionary attribute name |
-# | attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 # | dictionary_name | String | False | Dictionary name |
 # | dictionary_value | String | False | Dictionary value |
 # | operator | String | False | Equality operator |
 # | children | List | False | List of child conditions. |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_condition (list, objects identified by name)
 #
@@ -1003,7 +1024,7 @@ resource "ise_network_access_condition" "network_access_condition" {
   condition_type   = try(each.value.condition_type, null)
   is_negate        = try(each.value.is_negate, null)
   attribute_name   = try(each.value.attribute_name, null)
-  attribute_value  = try(each.value.attribute_value, null)
+  attribute_value  = try(each.value.attribute_value, null) != null && !can(regex(local.id_regexp, each.value.attribute_value)) && try(each.value.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.attribute_value] : try(each.value.attribute_value, null)
   dictionary_name  = try(each.value.dictionary_name, null)
   dictionary_value = try(each.value.dictionary_value, null)
   operator         = try(each.value.operator, null)
@@ -1014,7 +1035,7 @@ resource "ise_network_access_condition" "network_access_condition" {
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -1025,7 +1046,7 @@ resource "ise_network_access_condition" "network_access_condition" {
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -1034,7 +1055,7 @@ resource "ise_network_access_condition" "network_access_condition" {
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -1043,7 +1064,7 @@ resource "ise_network_access_condition" "network_access_condition" {
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -1052,7 +1073,7 @@ resource "ise_network_access_condition" "network_access_condition" {
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -1061,7 +1082,7 @@ resource "ise_network_access_condition" "network_access_condition" {
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -1081,7 +1102,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
   condition_type   = try(each.value.condition_type, null)
   is_negate        = try(each.value.is_negate, null)
   attribute_name   = try(each.value.attribute_name, null)
-  attribute_value  = try(each.value.attribute_value, null)
+  attribute_value  = try(each.value.attribute_value, null) != null && !can(regex(local.id_regexp, each.value.attribute_value)) && try(each.value.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.attribute_value] : try(each.value.attribute_value, null)
   dictionary_name  = try(each.value.dictionary_name, null)
   dictionary_value = try(each.value.dictionary_value, null)
   operator         = try(each.value.operator, null)
@@ -1092,7 +1113,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -1103,7 +1124,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -1112,7 +1133,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -1121,7 +1142,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -1130,7 +1151,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -1139,7 +1160,7 @@ resource "ise_network_access_condition" "network_access_condition_tier1" {
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -1159,7 +1180,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
   condition_type   = try(each.value.condition_type, null)
   is_negate        = try(each.value.is_negate, null)
   attribute_name   = try(each.value.attribute_name, null)
-  attribute_value  = try(each.value.attribute_value, null)
+  attribute_value  = try(each.value.attribute_value, null) != null && !can(regex(local.id_regexp, each.value.attribute_value)) && try(each.value.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.attribute_value] : try(each.value.attribute_value, null)
   dictionary_name  = try(each.value.dictionary_name, null)
   dictionary_value = try(each.value.dictionary_value, null)
   operator         = try(each.value.operator, null)
@@ -1170,7 +1191,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -1181,7 +1202,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -1190,7 +1211,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -1199,7 +1220,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -1208,7 +1229,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -1217,7 +1238,7 @@ resource "ise_network_access_condition" "network_access_condition_tier2" {
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -1237,7 +1258,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
   condition_type   = try(each.value.condition_type, null)
   is_negate        = try(each.value.is_negate, null)
   attribute_name   = try(each.value.attribute_name, null)
-  attribute_value  = try(each.value.attribute_value, null)
+  attribute_value  = try(each.value.attribute_value, null) != null && !can(regex(local.id_regexp, each.value.attribute_value)) && try(each.value.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.attribute_value] : try(each.value.attribute_value, null)
   dictionary_name  = try(each.value.dictionary_name, null)
   dictionary_value = try(each.value.dictionary_value, null)
   operator         = try(each.value.operator, null)
@@ -1248,7 +1269,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -1259,7 +1280,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -1268,7 +1289,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -1277,7 +1298,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -1286,7 +1307,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -1295,7 +1316,7 @@ resource "ise_network_access_condition" "network_access_condition_tier3" {
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -1435,6 +1456,38 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
   dictionary_attr_type = try(each.value.dictionary_attr_type, null)
 }
 
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS DICTIONARY REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network access dictionary objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_access_dictionary_referenced_names = distinct(compact(flatten([
+    [for item in local.network_access_dictionary_attribute : [for v0 in [item] : try(v0.dictionary_name, null) if !can(regex(local.id_regexp, v0.dictionary_name))]],
+  ])))
+  network_access_dictionary_managed_names   = [for item in local.network_access_dictionary : item.name]
+  network_access_dictionary_unmanaged_names = [for n in local.network_access_dictionary_referenced_names : n if !contains(local.network_access_dictionary_managed_names, n)]
+}
+
+data "ise_network_access_dictionary" "network_access_dictionary" {
+  for_each = toset(local.network_access_dictionary_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_access_dictionary_lookup_ids = { for k, v in data.ise_network_access_dictionary.network_access_dictionary : k => v.id }
+  network_access_dictionary_ids = merge(
+    local.network_access_dictionary_lookup_ids,
+    { for k, v in ise_network_access_dictionary.network_access_dictionary : k => v.id },
+  )
+}
+
 #
 # ==================================================================
 # NETWORK ACCESS DICTIONARY ATTRIBUTE
@@ -1442,7 +1495,7 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | dictionary_name | String | False | The name of the dictionary the attribute belongs to |
+# | dictionary_name | String | False | The name of the dictionary the attribute belongs to; name of the referenced network access dictionary instead of its ID |
 # | name | String | True | The dictionary attribute name |
 # | description | String | False | The description of the dictionary attribute |
 # | data_type | String | True | The data type for the dictionary attribute |
@@ -1450,7 +1503,7 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
 # | internal_name | String | False | The internal name of the dictionary attribute |
 # | allowed_values | List | False | List of allowed values for the attribute |
 #
-# YAML: ise.network_access.network_access_dictionary_attribute (list, objects identified by name)
+# YAML: ise.network_access.network_access_dictionary_attribute (list, objects identified by dictionary_name/name)
 #
 
 locals {
@@ -1467,16 +1520,16 @@ locals {
 }
 
 resource "ise_network_access_dictionary_attribute" "network_access_dictionary_attribute" {
-  for_each = { for item in local.network_access_dictionary_attribute : item.name => item }
+  for_each = { for item in local.network_access_dictionary_attribute : format("%s/%s", try(item.dictionary_name, item.dictionary_name, ""), item.name) => item }
 
-  dictionary_name = try(each.value.dictionary_name, null)
+  dictionary_name = try(each.value.dictionary_name, null) != null && !can(regex(local.id_regexp, each.value.dictionary_name)) ? local.network_access_dictionary_ids[each.value.dictionary_name] : try(each.value.dictionary_name, null)
   name            = try(each.value.name, null)
   description     = try(each.value.description, null)
   data_type       = try(each.value.data_type, null)
   direction_type  = try(each.value.direction_type, null)
   internal_name   = try(each.value.internal_name, null)
   allowed_values = try(each.value.allowed_values, null) == null ? null : [for i1 in each.value.allowed_values : {
-    key   = sensitive(try(i1.key, null))
+    key   = try(i1.key, null)
     value = try(i1.value, null)
   }]
 }
@@ -1498,7 +1551,7 @@ resource "ise_network_access_dictionary_attribute" "network_access_dictionary_at
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
 # | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object; name of the referenced profiler profile instead of its ID (if `condition_attribute_name` is `EndPointPolicy`) |
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
@@ -1506,6 +1559,7 @@ resource "ise_network_access_dictionary_attribute" "network_access_dictionary_at
 # | rank | Int64 | False | The rank (priority) in relation to other policy sets. Lower rank is higher priority, applied through `ise_network_access_policy_set_update_ranks` |
 # | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
 # | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+# | children.attribute_value | String | False | name of the referenced profiler profile instead of its ID (if `attribute_name` is `EndPointPolicy`) |
 #
 # YAML: ise.network_access.network_access_policy_set (list, objects identified by name)
 # The rank attribute is applied through ise_network_access_policy_set_update_ranks.
@@ -1537,7 +1591,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
   condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
   condition_is_negate        = try(each.value.condition_is_negate, null)
   condition_attribute_name   = try(each.value.condition_attribute_name, null)
-  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null) != null && !can(regex(local.id_regexp, each.value.condition_attribute_value)) && try(each.value.condition_attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[each.value.condition_attribute_value] : try(each.value.condition_attribute_value, null)
   condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
   condition_operator         = try(each.value.condition_operator, null)
@@ -1546,7 +1600,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
     id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
     is_negate        = try(i1.is_negate, null)
     attribute_name   = try(i1.attribute_name, null)
-    attribute_value  = try(i1.attribute_value, null)
+    attribute_value  = try(i1.attribute_value, null) != null && !can(regex(local.id_regexp, i1.attribute_value)) && try(i1.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i1.attribute_value] : try(i1.attribute_value, null)
     dictionary_name  = try(i1.dictionary_name, null)
     dictionary_value = try(i1.dictionary_value, null)
     operator         = try(i1.operator, null)
@@ -1555,7 +1609,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
       id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
       is_negate        = try(i2.is_negate, null)
       attribute_name   = try(i2.attribute_name, null)
-      attribute_value  = try(i2.attribute_value, null)
+      attribute_value  = try(i2.attribute_value, null) != null && !can(regex(local.id_regexp, i2.attribute_value)) && try(i2.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i2.attribute_value] : try(i2.attribute_value, null)
       dictionary_name  = try(i2.dictionary_name, null)
       dictionary_value = try(i2.dictionary_value, null)
       operator         = try(i2.operator, null)
@@ -1564,7 +1618,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
         id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
         is_negate        = try(i3.is_negate, null)
         attribute_name   = try(i3.attribute_name, null)
-        attribute_value  = try(i3.attribute_value, null)
+        attribute_value  = try(i3.attribute_value, null) != null && !can(regex(local.id_regexp, i3.attribute_value)) && try(i3.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i3.attribute_value] : try(i3.attribute_value, null)
         dictionary_name  = try(i3.dictionary_name, null)
         dictionary_value = try(i3.dictionary_value, null)
         operator         = try(i3.operator, null)
@@ -1573,7 +1627,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
           id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
           is_negate        = try(i4.is_negate, null)
           attribute_name   = try(i4.attribute_name, null)
-          attribute_value  = try(i4.attribute_value, null)
+          attribute_value  = try(i4.attribute_value, null) != null && !can(regex(local.id_regexp, i4.attribute_value)) && try(i4.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i4.attribute_value] : try(i4.attribute_value, null)
           dictionary_name  = try(i4.dictionary_name, null)
           dictionary_value = try(i4.dictionary_value, null)
           operator         = try(i4.operator, null)
@@ -1582,7 +1636,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
             id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
             is_negate        = try(i5.is_negate, null)
             attribute_name   = try(i5.attribute_name, null)
-            attribute_value  = try(i5.attribute_value, null)
+            attribute_value  = try(i5.attribute_value, null) != null && !can(regex(local.id_regexp, i5.attribute_value)) && try(i5.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i5.attribute_value] : try(i5.attribute_value, null)
             dictionary_name  = try(i5.dictionary_name, null)
             dictionary_value = try(i5.dictionary_value, null)
             operator         = try(i5.operator, null)
@@ -1591,7 +1645,7 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
               id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
               is_negate        = try(i6.is_negate, null)
               attribute_name   = try(i6.attribute_name, null)
-              attribute_value  = try(i6.attribute_value, null)
+              attribute_value  = try(i6.attribute_value, null) != null && !can(regex(local.id_regexp, i6.attribute_value)) && try(i6.attribute_name, null) == "EndPointPolicy" ? local.profiler_profile_ids[i6.attribute_value] : try(i6.attribute_value, null)
               dictionary_name  = try(i6.dictionary_name, null)
               dictionary_value = try(i6.dictionary_value, null)
               operator         = try(i6.operator, null)
@@ -1601,6 +1655,10 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
       }]
     }]
   }]
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 

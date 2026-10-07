@@ -27,6 +27,9 @@
 #                              name at deeper levels (children.children.id, ...)
 #                   format:    comma_list -> the attribute holds a comma separated
 #                              list of IDs and the YAML key holds a list of names
+#                 If name is the attribute itself, the attribute takes a name or
+#                 an ID; values that look like an ID are kept. An attribute can
+#                 have a list of references told apart by their when keys.
 #   ranks:      Rule/policy set order. The rank attribute is not set on the
 #               resource itself (ISE only accepts ranks in strict sequence on
 #               create) but applied afterwards through the bulk rank resource.
@@ -120,6 +123,24 @@ resources:
         name: name
         when: { condition_type: ConditionReference }
         recursive: true
+      # Endpoint profiling policies are given by name or ID
+      attribute_value:
+        target: profiler_profile
+        name: attribute_value
+        when: { attribute_name: EndPointPolicy }
+      children.attribute_value: &network_access_child_profiler_profile_reference
+        target: profiler_profile
+        name: attribute_value
+        when: { attribute_name: EndPointPolicy }
+        recursive: true
+
+  network_access_dictionary_attribute:
+    key: [dictionary_name, name]
+    references:
+      # the dictionary's ID is its name; the reference orders creation
+      dictionary_name:
+        target: network_access_dictionary
+        name: dictionary_name
 
   network_access_policy_set:
     references:
@@ -128,6 +149,11 @@ resources:
         name: condition_name
         when: { condition_type: ConditionReference }
       children.id: *network_access_condition_child_reference
+      condition_attribute_value: &network_access_profiler_profile_reference
+        target: profiler_profile
+        name: condition_attribute_value
+        when: { condition_attribute_name: EndPointPolicy }
+      children.attribute_value: *network_access_child_profiler_profile_reference
     ranks:
       resource: network_access_policy_set_update_ranks
       list: policies
@@ -140,6 +166,8 @@ resources:
         name: policy_set_name
       condition_id: *network_access_condition_reference
       children.id: *network_access_condition_child_reference
+      condition_attribute_value: *network_access_profiler_profile_reference
+      children.attribute_value: *network_access_child_profiler_profile_reference
     ranks:
       resource: network_access_authentication_rule_update_ranks
       list: rules
@@ -151,6 +179,8 @@ resources:
       policy_set_id: *network_access_policy_set_reference
       condition_id: *network_access_condition_reference
       children.id: *network_access_condition_child_reference
+      condition_attribute_value: *network_access_profiler_profile_reference
+      children.attribute_value: *network_access_child_profiler_profile_reference
     ranks:
       resource: network_access_authorization_rule_update_ranks
       list: rules
@@ -162,6 +192,8 @@ resources:
       policy_set_id: *network_access_policy_set_reference
       condition_id: *network_access_condition_reference
       children.id: *network_access_condition_child_reference
+      condition_attribute_value: *network_access_profiler_profile_reference
+      children.attribute_value: *network_access_child_profiler_profile_reference
     ranks:
       resource: network_access_authorization_exception_rule_update_ranks
       list: rules
@@ -171,6 +203,8 @@ resources:
     references:
       condition_id: *network_access_condition_reference
       children.id: *network_access_condition_child_reference
+      condition_attribute_value: *network_access_profiler_profile_reference
+      children.attribute_value: *network_access_child_profiler_profile_reference
     ranks:
       resource: network_access_authorization_global_exception_rule_update_ranks
       list: rules
@@ -258,12 +292,21 @@ resources:
       mapping_group:
         target: trustsec_ip_to_sgt_mapping_group
         name: mapping_group_name
+      # Deployment target by name or ID: a network device or a device group
+      deploy_to: &deploy_to_references
+        - target: network_device
+          name: deploy_to
+          when: { deploy_type: ND }
+        - target: network_device_group
+          name: deploy_to
+          when: { deploy_type: NDG }
 
   trustsec_ip_to_sgt_mapping_group:
     references:
       sgt:
         target: trustsec_security_group
         name: sgt_name
+      deploy_to: *deploy_to_references
 
   trustsec_work_process_settings:
     singleton: true

@@ -11,4 +11,15 @@
 - Secrets (passwords, shared secrets, keys) are no longer in `ignore_changes`: changing them in YAML rotates them in ISE
 - Fix defaults of nested lists (applied to each list item) and nested lists set to empty lists when not configured
 - Fix provider example values such as `OFF` read as booleans
+- Stop the plan on unknown YAML keys in the model and in `defaults`, with the path of each key; only `ise` and `defaults` are allowed as root keys
+- Add a JSON Schema of the YAML model (`schema/ise-iac.schema.json`) for editors, and `gen/validate_yaml.py` to check files against it
+- Add a module model (`schema/ise-iac.model.json`) describing resources, keys, references and provider API paths for tools such as the extractor
+- Refer to endpoint profiling policies by name in `EndPointPolicy` conditions, and to network devices and device groups by name in `deploy_to` of IP to SGT mappings; values that look like an ID are kept
+- Add the `ids` output with the IDs of the managed objects
+- Add the `write_default_values_file` input to write all default values to a file
+- Add a weekly Provider Update workflow that regenerates the module for a newer provider release and opens a pull request
+- Mark only the secrets the provider marks sensitive (attributes with a write-only variant). Other attributes matched by name before (`change_password`, SNMP and TrustSec usernames, `snmp_ro_community`, dictionary `allowed_values.key`) are no longer marked, so imported objects plan without changes; `snmp_ro_community` now shows in plans, as ISE returns it anyway
+- Ignore `rank` on ranked rules and policy sets: the bulk rank resources set it, and an import reads it
+- Key network access dictionary attributes by `dictionary_name/name`, and refer to the dictionary by name so it is created before its attributes
+- Auto-generated example: objects of resources sharing an API path get different names
 - Generator: command line options for the provider source, release and git ref, a fixed local provider source, stable output order, removal of stale generated files and `terraform fmt` of generated files

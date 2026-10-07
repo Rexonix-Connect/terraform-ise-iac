@@ -108,9 +108,9 @@ resource "ise_network_device" "network_device" {
   snmp_mac_trap_query                                         = try(each.value.snmp_mac_trap_query, null)
   snmp_originating_policy_service_node                        = try(each.value.snmp_originating_policy_service_node, null)
   snmp_polling_interval                                       = try(each.value.snmp_polling_interval, null)
-  snmp_ro_community                                           = sensitive(try(each.value.snmp_ro_community, null))
+  snmp_ro_community                                           = try(each.value.snmp_ro_community, null)
   snmp_version                                                = try(each.value.snmp_version, null)
-  snmp_username                                               = sensitive(try(each.value.snmp_username, null))
+  snmp_username                                               = try(each.value.snmp_username, null)
   snmp_security_level                                         = try(each.value.snmp_security_level, null)
   snmp_auth_protocol                                          = try(each.value.snmp_auth_protocol, null)
   snmp_auth_password                                          = sensitive(try(each.value.snmp_auth_password, null))
@@ -120,11 +120,11 @@ resource "ise_network_device" "network_device" {
   tacacs_shared_secret                                        = sensitive(try(each.value.tacacs_shared_secret, null))
   trustsec_device_id                                          = try(each.value.trustsec_device_id, null)
   trustsec_device_password                                    = sensitive(try(each.value.trustsec_device_password, null))
-  trustsec_rest_api_username                                  = sensitive(try(each.value.trustsec_rest_api_username, null))
+  trustsec_rest_api_username                                  = try(each.value.trustsec_rest_api_username, null)
   trustsec_rest_api_password                                  = sensitive(try(each.value.trustsec_rest_api_password, null))
   trustsec_enable_mode_password                               = sensitive(try(each.value.trustsec_enable_mode_password, null))
   trustsec_exec_mode_password                                 = sensitive(try(each.value.trustsec_exec_mode_password, null))
-  trustsec_exec_mode_username                                 = sensitive(try(each.value.trustsec_exec_mode_username, null))
+  trustsec_exec_mode_username                                 = try(each.value.trustsec_exec_mode_username, null)
   trustsec_include_when_deploying_sgt_updates                 = try(each.value.trustsec_include_when_deploying_sgt_updates, null)
   trustsec_download_environment_data_every_x_seconds          = try(each.value.trustsec_download_environment_data_every_x_seconds, null)
   trustsec_download_peer_authorization_policy_every_x_seconds = try(each.value.trustsec_download_peer_authorization_policy_every_x_seconds, null)
@@ -134,6 +134,39 @@ resource "ise_network_device" "network_device" {
   trustsec_send_configuration_to_device                       = try(each.value.trustsec_send_configuration_to_device, null)
   trustsec_send_configuration_to_device_using                 = try(each.value.trustsec_send_configuration_to_device_using, null)
   trustsec_coa_source_host                                    = try(each.value.trustsec_coa_source_host, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK DEVICE REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network device objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_device_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "ND"]],
+    [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "ND"]],
+  ])))
+  network_device_managed_names   = [for item in local.network_device : item.name]
+  network_device_unmanaged_names = [for n in local.network_device_referenced_names : n if !contains(local.network_device_managed_names, n)]
+}
+
+data "ise_network_device" "network_device" {
+  for_each = toset(local.network_device_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_device_lookup_ids = { for k, v in data.ise_network_device.network_device : k => v.id }
+  network_device_ids = merge(
+    local.network_device_lookup_ids,
+    { for k, v in ise_network_device.network_device : k => v.id },
+  )
 }
 
 #
@@ -167,4 +200,37 @@ resource "ise_network_device_group" "network_device_group" {
   name        = try(each.value.name, null)
   description = try(each.value.description, null)
   root_group  = try(each.value.root_group, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK DEVICE GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network device group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_device_group_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "NDG"]],
+    [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "NDG"]],
+  ])))
+  network_device_group_managed_names   = [for item in local.network_device_group : item.name]
+  network_device_group_unmanaged_names = [for n in local.network_device_group_referenced_names : n if !contains(local.network_device_group_managed_names, n)]
+}
+
+data "ise_network_device_group" "network_device_group" {
+  for_each = toset(local.network_device_group_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_device_group_lookup_ids = { for k, v in data.ise_network_device_group.network_device_group : k => v.id }
+  network_device_group_ids = merge(
+    local.network_device_group_lookup_ids,
+    { for k, v in ise_network_device_group.network_device_group : k => v.id },
+  )
 }

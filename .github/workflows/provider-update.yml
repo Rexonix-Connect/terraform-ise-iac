@@ -1,0 +1,150 @@
+name: Provider Update
+on:
+  workflow_dispatch:
+  schedule:
+    # weekly, Monday morning
+    - cron: "23 4 * * 1"
+
+permissions:
+  contents: read
+
+jobs:
+  # Generates and checks the module with read-only access: `terraform plan` runs
+  # the new provider release before anyone reviewed it.
+  generate:
+    name: Generate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      update: ${{ steps.release.outputs.update }}
+      latest: ${{ steps.release.outputs.latest }}
+      branch: ${{ steps.release.outputs.branch }}
+    env:
+      # offline plan: the examples only refer to objects they create
+      ISE_URL: https://127.0.0.1:9
+      ISE_USERNAME: admin
+      ISE_PASSWORD: dummy
+      ALICE_PASSWORD: dummy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Newest Provider Release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          current=$(cat gen/PROVIDER_VERSION)
+          latest=$(git ls-remote --tags --refs https://github.com/CiscoDevNet/terraform-provider-ise 'v*' \
+            | sed 's#.*refs/tags/v##' | grep -E '^[0-9]+\.[0-9]+\.[0-9]+$' | sort -V | tail -n 1)
+          newest=$(printf '%s\n%s\n' "$current" "$latest" | sort -V | tail -n 1)
+          branch="provider-update/v$latest"
+          echo "Module provider version: $current, newest release: $latest"
+          if [ "$latest" = "$current" ] || [ "$newest" != "$latest" ]; then
+            echo "Module is up to date"
+          elif gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/heads/$branch" 2> /dev/null; then
+            echo "Branch $branch exists already, not opening another pull request"
+          else
+            echo "update=true" >> "$GITHUB_OUTPUT"
+          fi
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "branch=$branch" >> "$GITHUB_OUTPUT"
+
+      - name: Python Setup
+        if: steps.release.outputs.update == 'true'
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Terraform Setup
+        if: steps.release.outputs.update == 'true'
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Generate Module
+        if: steps.release.outputs.update == 'true'
+        run: |
+          pip install -r gen/requirements.txt
+          echo "${{ steps.release.outputs.latest }}" > gen/PROVIDER_VERSION
+          ./gen/generate_module.py
+
+      - name: Check Module
+        if: steps.release.outputs.update == 'true'
+        run: |
+          terraform fmt -check
+          terraform fmt -check -recursive examples
+          (cd examples/auto-generated && terraform init -input=false -no-color \
+            && terraform validate -no-color \
+            && terraform plan -input=false -no-color -refresh=false -var ise_url=$ISE_URL)
+          (cd examples/references && terraform init -input=false -no-color \
+            && terraform validate -no-color \
+            && terraform plan -input=false -no-color -refresh=false)
+
+      - name: Save Changes
+        if: steps.release.outputs.update == 'true'
+        run: |
+          # .terraform and lock files of the examples are ignored by .gitignore
+          git add -A
+          git diff --cached --binary > "$RUNNER_TEMP/provider-update.patch"
+          git diff --cached --stat
+
+      - name: Upload Changes
+        if: steps.release.outputs.update == 'true'
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-update
+          path: ${{ runner.temp }}/provider-update.patch
+          retention-days: 7
+
+  # Commits the generated changes and opens a pull request. Runs no provider code.
+  publish:
+    name: Open Pull Request
+    needs: generate
+    if: needs.generate.outputs.update == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+      pull-requests: write
+    env:
+      # Pull requests opened with the default token do not start other workflows.
+      # Set the PROVIDER_UPDATE_TOKEN secret (token with contents and pull request
+      # write access) to have the Tests workflow run on them as well.
+      GH_TOKEN: ${{ secrets.PROVIDER_UPDATE_TOKEN || github.token }}
+      LATEST: ${{ needs.generate.outputs.latest }}
+      BRANCH: ${{ needs.generate.outputs.branch }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          token: ${{ secrets.PROVIDER_UPDATE_TOKEN || github.token }}
+
+      - name: Download Changes
+        uses: actions/download-artifact@v8
+        with:
+          name: provider-update
+          path: ${{ runner.temp }}
+
+      - name: Open Pull Request
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git apply --index "$RUNNER_TEMP/provider-update.patch"
+          git commit -s -m "Generate module for provider $LATEST"
+          git push origin "$BRANCH"
+          gh pr create --base main --head "$BRANCH" \
+            --title "Generate module for provider $LATEST" \
+            --body "$(printf '%s\n' \
+              "Regenerated the module for [ISE provider $LATEST](https://github.com/CiscoDevNet/terraform-provider-ise/releases/tag/v$LATEST)." \
+              "" \
+              "The workflow ran \`terraform fmt\`, \`validate\` and an offline \`plan\` of both examples before opening this pull request." \
+              "" \
+              "Before merging:" \
+              "- read the provider changelog for breaking changes" \
+              "- add a CHANGELOG entry" \
+              "- check \`gen/overrides.yaml\` still fits new or changed resources")"

@@ -46,6 +46,24 @@ ise:
 - Complete examples: `examples/references` (hand-written) and
   `examples/auto-generated` (every resource, with the provider's example values).
 
+### Checking YAML
+
+Values under unknown YAML keys would be ignored, so the plan stops with a list of
+unknown keys (typos, or keys of a newer module version), for example
+`ise.network_resources.network_device[0].shared_secret`. The YAML may have only
+the root keys `ise` and `defaults`, so YAML directories cannot be shared with
+other modules.
+
+`schema/ise-iac.schema.json` is a JSON Schema of the YAML model. It gives
+completion and checks in editors, e.g. with the YAML extension for VS Code:
+
+```yaml
+# yaml-language-server: $schema=https://raw.githubusercontent.com/Rexonix-Connect/terraform-ise-iac/main/schema/ise-iac.schema.json
+```
+
+`gen/validate_yaml.py file.yaml ...` checks files against it without Terraform,
+e.g. in CI pipelines (`pip install -r gen/requirements.txt`).
+
 ### References by name
 
 ISE objects often point to other objects by ID. In YAML they can point by name
@@ -67,6 +85,11 @@ by ID (`join_point_id`).
 | `active_directory_join_domain_with_all_nodes` | `join_point_name` | Active Directory join point |
 | `trustsec_egress_matrix_cell` | `source_sgt_name`, `destination_sgt_name`, `matrix_name` | security group, matrix |
 | `trustsec_ip_to_sgt_mapping(_group)` | `sgt_name`, `mapping_group_name` | security group, mapping group |
+| `trustsec_ip_to_sgt_mapping(_group)` | `deploy_to` (if `deploy_type` is `ND` or `NDG`) | network device, network device group |
+| policy set, rules, library conditions | `condition_attribute_value`, `attribute_value`, `children[].attribute_value` (if the attribute name is `EndPointPolicy`) | profiler profile |
+
+In the last two rows the key itself takes either a name or an ID: values that
+look like an ISE ID (a UUID) are used as they are.
 
 Library conditions and endpoint identity groups can refer to objects of the same
 type. The module creates them in tiers so that referenced objects exist first.
@@ -103,6 +126,7 @@ ISE. In YAML they are a single object instead of a list.
 | terraform | >= 1.8.0 |
 | [CiscoDevNet/ise](https://registry.terraform.io/providers/CiscoDevNet/ise) | ~> 0.5.0 |
 | [netascode/utils](https://registry.terraform.io/providers/netascode/utils) | ~> 2.0 |
+| [hashicorp/local](https://registry.terraform.io/providers/hashicorp/local) | >= 2.3.0 |
 
 ## Inputs
 
@@ -111,6 +135,7 @@ ISE. In YAML they are a single object instead of a list.
 | `yaml_directories` | List of paths to directories containing YAML model files. | `list(string)` | `[]` |
 | `yaml_files` | List of paths to YAML model files. | `list(string)` | `[]` |
 | `model` | As an alternative to YAML model files, a native Terraform data structure can be provided as well. | `map(any)` | `{}` |
+| `write_default_values_file` | Write all default values (module and user defaults merged) to a YAML file. Value is a path pointing to the file to be created. | `string` | `""` |
 
 ## Outputs
 
@@ -118,25 +143,40 @@ ISE. In YAML they are a single object instead of a list.
 |------|-------------|
 | `model` | Full model. |
 | `defaults` | Default values. |
+| `ids` | IDs of the objects managed by the module, by resource and object key, e.g. `module.ise.ids.network_access_policy_set["Wired"]`. |
 
 # Development
 
-All `ise_*.tf` files, `versions.tf`, `defaults/` and `examples/auto-generated/`
-are generated. Change the generator (`gen/generate_module.py`, `gen/templates/`)
-or the module customizations (`gen/overrides.yaml`) and regenerate:
+All `ise_*.tf` files, `ids.tf`, `validation.tf`, `versions.tf`, `defaults/`,
+`schema/` and `examples/auto-generated/` are generated. Change the generator
+(`gen/generate_module.py`, `gen/templates/`) or the module customizations
+(`gen/overrides.yaml`) and regenerate:
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r gen/requirements.txt
 
-# clone provider tag v0.5.0 and regenerate the module
+# clone the provider release in gen/PROVIDER_VERSION and regenerate the module
 ./gen/generate_module.py
 
 # other provider release, or a local provider checkout
 ./gen/generate_module.py --provider-version 0.5.1
 ./gen/generate_module.py --provider-source local --provider-path ../terraform-provider-ise
 ```
+
+To move to a new provider release, change `gen/PROVIDER_VERSION` and regenerate.
+The Provider Update workflow does this every week: it opens a pull request when
+CiscoDevNet releases a newer provider. It generates and checks the module with
+read-only access, and only a separate job that runs no provider code gets write
+access to push the branch and open the pull request. It needs "Allow GitHub
+Actions to create and approve pull requests" in the repository settings. With a
+`PROVIDER_UPDATE_TOKEN` secret (a token with contents and pull request write
+access) the Tests workflow also runs on its pull requests.
+
+`schema/ise-iac.model.json` describes the module for tools such as the
+extractor: resources, keys, references, ranks, tiers and the provider's API
+paths.
 
 `terraform` must be on the `PATH` to format the generated files. CI checks that
 the generated files are up to date and runs `terraform validate` and an offline

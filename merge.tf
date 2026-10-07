@@ -21,10 +21,18 @@ locals {
   user_defaults = { "defaults" : try(local.model["defaults"], {}) }
   # module defaults (defaults/ise_defaults.yaml) merged with user defaults,
   # user defaults override the module defaults
-  defaults = yamldecode(provider::utils::yaml_merge([
+  defaults_string = provider::utils::yaml_merge([
     file("${path.module}/defaults/ise_defaults.yaml"),
     yamlencode(local.user_defaults)
-  ]))["defaults"]
+  ])
+  defaults = yamldecode(local.defaults_string)["defaults"]
+}
+
+# Optionally write all default values (module and user defaults merged) to a file
+resource "local_sensitive_file" "defaults" {
+  count    = var.write_default_values_file != "" ? 1 : 0
+  content  = local.defaults_string
+  filename = var.write_default_values_file
 }
 
 resource "terraform_data" "validation" {

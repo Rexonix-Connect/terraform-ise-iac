@@ -46,6 +46,9 @@ jobs:
             exit 1
           fi
 
+      - name: YAML Schema
+        run: ./gen/validate_yaml.py examples/auto-generated/model-data/*.yaml examples/auto-generated/user-defaults/*.yaml examples/references/*.yaml
+
       - name: Terraform Format
         # gen/ holds the provider checkout, not module code
         run: |

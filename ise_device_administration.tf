@@ -169,6 +169,10 @@ resource "ise_device_admin_authentication_rule" "device_admin_authentication_rul
   if_auth_fail         = try(each.value.if_auth_fail, null)
   if_process_fail      = try(each.value.if_process_fail, null)
   if_user_not_found    = try(each.value.if_user_not_found, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -319,6 +323,10 @@ resource "ise_device_admin_authorization_exception_rule" "device_admin_authoriza
   }]
   command_sets = try(each.value.command_sets, null)
   profile      = try(each.value.profile, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -464,6 +472,10 @@ resource "ise_device_admin_authorization_global_exception_rule" "device_admin_au
   }]
   command_sets = try(each.value.command_sets, null)
   profile      = try(each.value.profile, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -611,6 +623,10 @@ resource "ise_device_admin_authorization_rule" "device_admin_authorization_rule"
   }]
   command_sets = try(each.value.command_sets, null)
   profile      = try(each.value.profile, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -1231,6 +1247,10 @@ resource "ise_device_admin_policy_set" "device_admin_policy_set" {
       }]
     }]
   }]
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 

@@ -14,7 +14,7 @@ ise:
       allow_ms_chap_v1: true
       allow_pap_ascii: true
       description: My allowed TACACS protocols
-      name: Protocols1
+      name: Protocols1-tacacs
     device_admin_authentication_rule:
     - children:
       - attribute_name: Location

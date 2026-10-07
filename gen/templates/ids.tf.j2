@@ -1,0 +1,17 @@
+
+output "ids" {
+  description = "IDs of the objects managed by the module, by resource and object key (the ID for objects that exist once per ISE)."
+  value = {
+{% for resource in resources %}
+{% if resource.singleton %}
+    {{ resource.name }} = try(ise_{{ resource.name }}.{{ resource.name }}[0].id, null)
+{% else %}
+    {{ resource.name }} = merge(
+{% for name in resource.terraform_names %}
+      { for k, v in ise_{{ resource.name }}.{{ name }} : k => v.id },
+{% endfor %}
+    )
+{% endif %}
+{% endfor %}
+  }
+}

@@ -15,3 +15,9 @@ variable "model" {
   type        = map(any)
   default     = {}
 }
+
+variable "write_default_values_file" {
+  description = "Write all default values (module and user defaults merged) to a YAML file. Value is a path pointing to the file to be created."
+  type        = string
+  default     = ""
+}
