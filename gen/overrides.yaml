@@ -265,6 +265,11 @@ resources:
   # ----------------------------------------------------------------------------
   # TrustSec
   # ----------------------------------------------------------------------------
+  # the name is optional and usually empty (e.g. the default VPN); the VPN
+  # domain name identifies a VPN
+  sxp_vpn:
+    key: [sxp_vpn_name]
+
   trustsec_egress_matrix_cell:
     key: [matrix_name, source_sgt_name, destination_sgt_name]
     references:

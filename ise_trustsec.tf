@@ -155,7 +155,7 @@ resource "ise_sxp_local_binding" "sxp_local_binding" {
 # | description | String | False | The description of the SXP VPN. |
 # | sxp_vpn_name | String | True | The name of the SXP VPN domain, for example `default`. |
 #
-# YAML: ise.trustsec.sxp_vpn (list, objects identified by name)
+# YAML: ise.trustsec.sxp_vpn (list, objects identified by sxp_vpn_name)
 #
 
 locals {
@@ -170,7 +170,7 @@ locals {
 }
 
 resource "ise_sxp_vpn" "sxp_vpn" {
-  for_each = { for item in local.sxp_vpn : item.name => item }
+  for_each = { for item in local.sxp_vpn : item.sxp_vpn_name => item }
 
   name         = try(each.value.name, null)
   description  = try(each.value.description, null)

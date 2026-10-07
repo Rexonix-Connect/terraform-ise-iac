@@ -14677,7 +14677,7 @@
       ],
       "singleton": false,
       "key": [
-        "name"
+        "sxp_vpn_name"
       ],
       "rank": null,
       "attributes": [

@@ -29,8 +29,7 @@ ise:
       sgt: SGT1234
       sxp_vpn: default
     sxp_vpn:
-    - name: SxpVpn
-      sxp_vpn_name: sxpvpn1
+    - sxp_vpn_name: sxpvpn1
     trustsec_egress_matrix_cell:
     - default_rule: NONE
       description: EgressMatrixCell Description
