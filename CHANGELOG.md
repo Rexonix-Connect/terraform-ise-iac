@@ -21,6 +21,7 @@
 - Mark only the secrets the provider marks sensitive (attributes with a write-only variant). Other attributes matched by name before (`change_password`, SNMP and TrustSec usernames, `snmp_ro_community`, dictionary `allowed_values.key`) are no longer marked, so imported objects plan without changes; `snmp_ro_community` now shows in plans, as ISE returns it anyway
 - Ignore `rank` on ranked rules and policy sets: the bulk rank resources set it, and an import reads it
 - Key network access dictionary attributes by `dictionary_name/name`, and refer to the dictionary by name so it is created before its attributes
+- Add the `manage_ranks` input to turn off rank updates: ISE provider 0.5.0 can copy the conditions of one rule into the next rule while it sets ranks
 - Key SXP VPNs by `sxp_vpn_name`: their `name` is optional and ISE usually leaves it empty (e.g. the default VPN)
 - Auto-generated example: objects of resources sharing an API path get different names
 - Generator: command line options for the provider source, release and git ref, a fixed local provider source, stable output order, removal of stale generated files and `terraform fmt` of generated files

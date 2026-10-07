@@ -6,14 +6,15 @@
 # ------------------------------------------------------------------
 #
 # Ranks of {{ r | replace("_", " ") }} objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 {% if group_ref %}
 locals {
   # {{ r | replace("_", " ") | capitalize }} objects with a rank, grouped by {{ group_ref.name }}
   {{ r }}_ranks = {
-    for item in local.{{ r }} : {{ group_key }} => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.{{ r }} : {{ group_key }} => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -29,7 +30,7 @@ resource "ise_{{ ranks.resource }}" "{{ ranks.resource }}" {
 {% else %}
 locals {
   # {{ r | replace("_", " ") | capitalize }} objects with a rank
-  {{ r }}_ranks = [for item in local.{{ r }} : item if try(item.rank, null) != null && !try(item.default, false)]
+  {{ r }}_ranks = [for item in local.{{ r }} : item if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)]
 }
 
 resource "ise_{{ ranks.resource }}" "{{ ranks.resource }}" {

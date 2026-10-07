@@ -182,13 +182,14 @@ resource "ise_device_admin_authentication_rule" "device_admin_authentication_rul
 # ------------------------------------------------------------------
 #
 # Ranks of device admin authentication rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Device admin authentication rule objects with a rank, grouped by policy_set_name
   device_admin_authentication_rule_ranks = {
-    for item in local.device_admin_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.device_admin_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -336,13 +337,14 @@ resource "ise_device_admin_authorization_exception_rule" "device_admin_authoriza
 # ------------------------------------------------------------------
 #
 # Ranks of device admin authorization exception rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Device admin authorization exception rule objects with a rank, grouped by policy_set_name
   device_admin_authorization_exception_rule_ranks = {
-    for item in local.device_admin_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.device_admin_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -485,12 +487,13 @@ resource "ise_device_admin_authorization_global_exception_rule" "device_admin_au
 # ------------------------------------------------------------------
 #
 # Ranks of device admin authorization global exception rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Device admin authorization global exception rule objects with a rank
-  device_admin_authorization_global_exception_rule_ranks = [for item in local.device_admin_authorization_global_exception_rule : item if try(item.rank, null) != null && !try(item.default, false)]
+  device_admin_authorization_global_exception_rule_ranks = [for item in local.device_admin_authorization_global_exception_rule : item if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)]
 }
 
 resource "ise_device_admin_authorization_global_exception_rule_update_ranks" "device_admin_authorization_global_exception_rule_update_ranks" {
@@ -636,13 +639,14 @@ resource "ise_device_admin_authorization_rule" "device_admin_authorization_rule"
 # ------------------------------------------------------------------
 #
 # Ranks of device admin authorization rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Device admin authorization rule objects with a rank, grouped by policy_set_name
   device_admin_authorization_rule_ranks = {
-    for item in local.device_admin_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.device_admin_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -1260,12 +1264,13 @@ resource "ise_device_admin_policy_set" "device_admin_policy_set" {
 # ------------------------------------------------------------------
 #
 # Ranks of device admin policy set objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Device admin policy set objects with a rank
-  device_admin_policy_set_ranks = [for item in local.device_admin_policy_set : item if try(item.rank, null) != null && !try(item.default, false)]
+  device_admin_policy_set_ranks = [for item in local.device_admin_policy_set : item if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)]
 }
 
 resource "ise_device_admin_policy_set_update_ranks" "device_admin_policy_set_update_ranks" {

@@ -21,3 +21,9 @@ variable "write_default_values_file" {
   type        = string
   default     = ""
 }
+
+variable "manage_ranks" {
+  description = "Apply the `rank` of rules and policy sets with the provider's bulk rank resources (`ise_*_update_ranks`). When false, ranks in YAML are accepted but not applied, and ISE keeps its order. ISE provider 0.5.0 can copy the conditions of one rule into the next rule while it sets ranks, so set this to false with that provider to leave existing rules untouched."
+  type        = bool
+  default     = true
+}
