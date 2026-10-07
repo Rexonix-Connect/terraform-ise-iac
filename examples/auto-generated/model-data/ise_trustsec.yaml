@@ -9,42 +9,62 @@
 #
 ise:
   trustsec:
+    sxp_connection:
+    - enabled: true
+      ip_address: 10.0.0.1
+      name: SXPConnection1
+      sxp_mode: SPEAKER
+      sxp_node: ise1
+      sxp_peer: SXPPeer1
+      sxp_version: VERSION_2
+      sxp_vpn: default
     sxp_domain_filter:
-    - description: null
-      domains: default
-      name: null
-      sgt: null
+    - domains: default
+      name: SxpDomainFilter
       subnet: 1.0.0.0/24
       vn: VN1
+    sxp_local_binding:
+    - ip_address_or_host: 10.0.0.1
+      name: SXPLocalBinding1
+      sgt: SGT1234
+      sxp_vpn: default
+    sxp_vpn:
+    - name: SxpVpn
+      sxp_vpn_name: sxpvpn1
     trustsec_egress_matrix_cell:
     - default_rule: NONE
       description: EgressMatrixCell Description
-      destination_sgt_id: 93e1bf00-8c01-11e6-996c-525400b48521
+      destination_sgt_name: SGT1234
       matrix_cell_status: ENABLED
+      matrix_name: MyMatrix
       sgacls:
       - 26b76b10-66e6-11ee-9cc1-9eb2a3ecc82a, 9d64dcd0-6384-11ee-9cc1-9eb2a3ecc82a
-      source_sgt_id: 93c66ed0-8c01-11e6-996c-525400b48521
+      source_sgt_name: SGT1234
     trustsec_egress_matrix_cell_default:
-    - default_rule: PERMIT_IP
+      default_rule: PERMIT_IP
       description: Default egress rule
       matrix_cell_status: ENABLED
-      sgacls:
-      - null
+    trustsec_egress_push_matrix:
+      force: false
     trustsec_ip_to_sgt_mapping:
     - deploy_to: All Locations
       deploy_type: ALL
-      description: null
       host_ip: 10.0.0.1/32
       host_name: server1.cisco.com
-      mapping_group: 48fc1ac2-d500-493d-99ad-8d8fab0ef11f
+      mapping_group_name: groupA
       name: 10.0.0.1/32
-      sgt: 93e1bf00-8c01-11e6-996c-525400b48521
+      sgt_name: SGT1234
     trustsec_ip_to_sgt_mapping_group:
     - deploy_to: All Locations
       deploy_type: ALL
-      description: null
       name: groupA
-      sgt: 93e1bf00-8c01-11e6-996c-525400b48521
+      sgt_name: SGT1234
+    trustsec_matrix:
+    - copy_policy_from: 7c9484cf-0ebc-47ad-a9ef-bc12729ed73b
+      defcon_level: DEFCON1_CRITICAL
+      description: My TrustSec Matrix Policy
+      matrix_policy_type: TRUSTSEC_POLICY
+      name: MyMatrix
     trustsec_security_group:
     - description: My SGT
       is_read_only: false
@@ -57,3 +77,7 @@ ise:
       ip_version: IPV4
       name: ACL1
       read_only: false
+    trustsec_work_process_settings:
+      enable_approval_workflow: false
+      matrix_mode: MULTIPLE_MATRICES
+      use_defcons: false

@@ -1,0 +1,67 @@
+name: Tests
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      # offline plan: the examples only refer to objects they create, so the
+      # provider never connects to ISE
+      ISE_URL: https://127.0.0.1:9
+      ISE_USERNAME: admin
+      ISE_PASSWORD: dummy
+      ALICE_PASSWORD: dummy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      - name: Python Setup
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+
+      - name: Terraform Setup
+        uses: hashicorp/setup-terraform@v4
+        with:
+          terraform_version: 1.16.5
+          terraform_wrapper: false
+
+      - name: Generator Requirements
+        run: pip install -r gen/requirements.txt
+
+      - name: Generated Files Up To Date
+        run: |
+          ./gen/generate_module.py
+          if [ -n "$(git status --porcelain)" ]; then
+            git status --porcelain
+            git diff
+            echo "::error::Generated files are out of date, run ./gen/generate_module.py"
+            exit 1
+          fi
+
+      - name: Terraform Format
+        # gen/ holds the provider checkout, not module code
+        run: |
+          terraform fmt -check
+          terraform fmt -check -recursive examples
+
+      - name: Auto-Generated Example
+        working-directory: examples/auto-generated
+        run: |
+          terraform init -input=false -no-color
+          terraform validate -no-color
+          terraform plan -input=false -no-color -refresh=false -var ise_url=$ISE_URL
+
+      - name: References Example
+        working-directory: examples/references
+        run: |
+          terraform init -input=false -no-color
+          terraform validate -no-color
+          terraform plan -input=false -no-color -refresh=false

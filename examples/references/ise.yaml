@@ -1,0 +1,96 @@
+---
+# Objects refer to each other by name. The module resolves names to IDs of the
+# objects it creates, or looks them up in ISE (e.g. built-in objects).
+ise:
+  network_access:
+    network_access_condition:
+      - name: IsWired
+        condition_type: LibraryConditionAttributes
+        dictionary_name: Radius
+        attribute_name: NAS-Port-Type
+        operator: equals
+        attribute_value: Ethernet
+      # Library conditions can use other library conditions. The module creates
+      # the used conditions first.
+      - name: IsWiredOrWireless
+        condition_type: LibraryConditionOrBlock
+        children:
+          - condition_type: ConditionReference
+            name: IsWired
+          - condition_type: ConditionAttributes
+            dictionary_name: Radius
+            attribute_name: NAS-Port-Type
+            operator: equals
+            attribute_value: Wireless - IEEE 802.11
+      - name: CorporateEapTls
+        condition_type: LibraryConditionAndBlock
+        children:
+          - condition_type: ConditionReference
+            name: IsWiredOrWireless
+          - condition_type: ConditionAttributes
+            dictionary_name: Network Access
+            attribute_name: EapAuthentication
+            operator: equals
+            attribute_value: EAP-TLS
+
+    network_access_policy_set:
+      - name: Wired
+        service_name: Default Network Access
+        condition_type: ConditionReference
+        condition_name: IsWired
+        rank: 0
+      - name: Corporate
+        service_name: Default Network Access
+        condition_type: ConditionReference
+        condition_name: CorporateEapTls
+        rank: 1
+
+    # Rules are identified by policy set and rule name, so rule names can repeat
+    # across policy sets. Ranks are applied per policy set after the rules exist.
+    network_access_authorization_rule:
+      - policy_set_name: Wired
+        name: Employees
+        rank: 0
+        condition_type: ConditionReference
+        condition_name: CorporateEapTls
+        profiles: [PermitAccess]
+      - policy_set_name: Wired
+        name: Printers
+        rank: 1
+        condition_type: ConditionAndBlock
+        children:
+          - condition_type: ConditionReference
+            name: IsWired
+          - condition_type: ConditionAttributes
+            dictionary_name: IdentityGroup
+            attribute_name: Name
+            operator: equals
+            attribute_value: Endpoint Identity Groups:Printers
+        profiles: [PermitAccess]
+      - policy_set_name: Corporate
+        name: Employees
+        rank: 0
+        profiles: [PermitAccess]
+
+  identity_management:
+    user_identity_group:
+      - name: NetworkAdmins
+      - name: NetworkOperators
+
+    internal_user:
+      - name: alice
+        password: !env ALICE_PASSWORD
+        change_password: false
+        identity_group_names: [NetworkAdmins, NetworkOperators]
+
+    endpoint_identity_group:
+      - name: Printers
+      - name: ColorPrinters
+        parent_endpoint_identity_group_name: Printers
+
+    endpoint:
+      - name: "00:11:22:33:44:55"
+        mac: "00:11:22:33:44:55"
+        static_group_assignment: true
+        static_profile_assignment: false
+        group_name: ColorPrinters

@@ -31,14 +31,20 @@ ise:
       network_device_groups:
       - Device Type#All Device Types#ACCESS
       profile_name: Cisco
+      snmp_auth_password: Cisco123
+      snmp_auth_protocol: SHA2
       snmp_link_trap_query: true
       snmp_mac_trap_query: true
       snmp_originating_policy_service_node: PSN1
       snmp_polling_interval: 1200
+      snmp_privacy_password: Cisco12345
+      snmp_privacy_protocol: AES256
       snmp_ro_community: rocom
-      snmp_version: TWO_C
+      snmp_security_level: PRIV
+      snmp_username: user123
+      snmp_version: THREE
       software_version: Unknown
-      tacacs_connect_mode_options: false
+      tacacs_connect_mode_options: 'OFF'
       tacacs_shared_secret: cisco123
       trustsec_coa_source_host: PSN1
       trustsec_device_id: device123

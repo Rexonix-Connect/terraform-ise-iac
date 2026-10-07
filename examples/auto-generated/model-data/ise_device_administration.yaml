@@ -19,7 +19,6 @@ ise:
     - children:
       - attribute_name: Location
         attribute_value: All Locations
-        children: null
         condition_type: ConditionAttributes
         dictionary_name: DEVICE
         dictionary_value: abc
@@ -40,23 +39,13 @@ ise:
       if_process_fail: DROP
       if_user_not_found: REJECT
       name: Rule1
-      policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
+      policy_set_name: PolicySet1
       rank: 0
       state: enabled
-    device_admin_authentication_rule_update_rank:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rank: 0
-      rule_id: 9b3680da-0165-44f6-9cff-88e778d98020
-    device_admin_authentication_rule_update_ranks:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rules:
-      - id: 3741aca3-db08-4899-af73-2e3f65ec31e1
-        rank: 0
     device_admin_authorization_exception_rule:
     - children:
       - attribute_name: Location
         attribute_value: All Locations
-        children: null
         condition_type: ConditionAttributes
         dictionary_name: DEVICE
         dictionary_value: abc
@@ -75,24 +64,14 @@ ise:
       condition_type: ConditionAttributes
       default: false
       name: Rule1
-      policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
+      policy_set_name: PolicySet1
       profile: Default Shell Profile
       rank: 0
       state: enabled
-    device_admin_authorization_exception_rule_update_rank:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rank: 0
-      rule_id: 9b3680da-0165-44f6-9cff-88e778d98020
-    device_admin_authorization_exception_rule_update_ranks:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rules:
-      - id: 3741aca3-db08-4899-af73-2e3f65ec31e1
-        rank: 0
     device_admin_authorization_global_exception_rule:
     - children:
       - attribute_name: Location
         attribute_value: All Locations
-        children: null
         condition_type: ConditionAttributes
         dictionary_name: DEVICE
         dictionary_value: abc
@@ -113,18 +92,10 @@ ise:
       profile: Default Shell Profile
       rank: 0
       state: enabled
-    device_admin_authorization_global_exception_rule_update_rank:
-    - rank: 0
-      rule_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-    device_admin_authorization_global_exception_rule_update_ranks:
-    - rules:
-      - id: 3741aca3-db08-4899-af73-2e3f65ec31e1
-        rank: 0
     device_admin_authorization_rule:
     - children:
       - attribute_name: Location
         attribute_value: All Locations
-        children: null
         condition_type: ConditionAttributes
         dictionary_name: DEVICE
         dictionary_value: abc
@@ -143,26 +114,16 @@ ise:
       condition_type: ConditionAttributes
       default: false
       name: Rule1
-      policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
+      policy_set_name: PolicySet1
       profile: Default Shell Profile
       rank: 0
       state: enabled
-    device_admin_authorization_rule_update_rank:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rank: 0
-      rule_id: 9b3680da-0165-44f6-9cff-88e778d98020
-    device_admin_authorization_rule_update_ranks:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rules:
-      - id: 3741aca3-db08-4899-af73-2e3f65ec31e1
-        rank: 0
     device_admin_condition:
     - attribute_name: User
       attribute_value: User1
       children:
       - attribute_name: User
         attribute_value: User1
-        children: null
         condition_type: ConditionAttributes
         description: My description
         dictionary_name: TACACS
@@ -182,7 +143,6 @@ ise:
     - children:
       - attribute_name: Location
         attribute_value: All Locations
-        children: null
         condition_type: ConditionAttributes
         dictionary_name: DEVICE
         dictionary_value: abc
@@ -204,13 +164,6 @@ ise:
       rank: 0
       service_name: Default Device Admin
       state: enabled
-    device_admin_policy_set_update_rank:
-    - policy_set_id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-      rank: 0
-    device_admin_policy_set_update_ranks:
-    - policies:
-      - id: d82952cb-b901-4b09-b363-5ebf39bdbaf9
-        rank: 0
     device_admin_time_and_date_condition:
     - description: My description
       end_date: '2022-05-10'

@@ -9,7 +9,7 @@
 #
 #
 # ==================================================================
-# ALLOWED PROTOCOLS 
+# ALLOWED PROTOCOLS
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -91,677 +91,114 @@
 # | teap_downgrade_msk | Bool | False | Allow downgrade to MSK |
 # | teap_request_basic_pwd_auth | Bool | False | Request basic password authentication |
 # | allow_5g | Bool | False | Allow 5G. This field is only supported from ISE 3.2. |
+# | rsa_pss | Bool | False | Enable/Disable RSA PSS cipher based on policy. This field is only supported from ISE 3.4. |
+# | display_additional_tls_params | Bool | False | Enable/Disable display additional TLS parameters. This field is only supported from ISE 3.5. |
+#
+# YAML: ise.network_access.allowed_protocols (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for allowed protocols (module defaults merged with user defaults)
   defaults_allowed_protocols = try(local.defaults.ise.network_access.allowed_protocols, {})
 
-  # Allowed Protocols (with defaults)
+  # Allowed protocols objects with defaults
   allowed_protocols = [for item in try(local.ise.network_access.allowed_protocols, []) : merge(
-    local.defaults_allowed_protocols, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_allowed_protocols,
+    item
   )]
 }
 
-# Create allowed protocols
 resource "ise_allowed_protocols" "allowed_protocols" {
-  for_each = { for item in try(local.allowed_protocols, []) : item.name => item }
+  for_each = { for item in local.allowed_protocols : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  process_host_lookup = try(each.value.process_host_lookup, null)
-  allow_pap_ascii = try(each.value.allow_pap_ascii, null)
-  allow_chap = try(each.value.allow_chap, null)
-  allow_ms_chap_v1 = try(each.value.allow_ms_chap_v1, null)
-  allow_ms_chap_v2 = try(each.value.allow_ms_chap_v2, null)
-  allow_eap_md5 = try(each.value.allow_eap_md5, null)
-  allow_leap = try(each.value.allow_leap, null)
-  allow_eap_tls = try(each.value.allow_eap_tls, null)
-  allow_eap_ttls = try(each.value.allow_eap_ttls, null)
-  allow_eap_fast = try(each.value.allow_eap_fast, null)
-  allow_peap = try(each.value.allow_peap, null)
-  allow_teap = try(each.value.allow_teap, null)
-  allow_preferred_eap_protocol = try(each.value.allow_preferred_eap_protocol, null)
-  preferred_eap_protocol = try(each.value.preferred_eap_protocol, null)
-  eap_tls_l_bit = try(each.value.eap_tls_l_bit, null)
-  allow_weak_ciphers_for_eap = try(each.value.allow_weak_ciphers_for_eap, null)
-  require_message_auth = try(each.value.require_message_auth, null)
-  eap_tls_allow_auth_of_expired_certs = try(each.value.eap_tls_allow_auth_of_expired_certs, null)
-  eap_tls_enable_stateless_session_resume = try(each.value.eap_tls_enable_stateless_session_resume, null)
-  eap_tls_session_ticket_ttl = try(each.value.eap_tls_session_ticket_ttl, null)
-  eap_tls_session_ticket_ttl_unit = try(each.value.eap_tls_session_ticket_ttl_unit, null)
-  eap_tls_session_ticket_percentage = try(each.value.eap_tls_session_ticket_percentage, null)
-  peap_allow_peap_eap_ms_chap_v2 = try(each.value.peap_allow_peap_eap_ms_chap_v2, null)
-  peap_allow_peap_eap_ms_chap_v2_pwd_change = try(each.value.peap_allow_peap_eap_ms_chap_v2_pwd_change, null)
+  name                                              = try(each.value.name, null)
+  description                                       = try(each.value.description, null)
+  process_host_lookup                               = try(each.value.process_host_lookup, null)
+  allow_pap_ascii                                   = try(each.value.allow_pap_ascii, null)
+  allow_chap                                        = try(each.value.allow_chap, null)
+  allow_ms_chap_v1                                  = try(each.value.allow_ms_chap_v1, null)
+  allow_ms_chap_v2                                  = try(each.value.allow_ms_chap_v2, null)
+  allow_eap_md5                                     = try(each.value.allow_eap_md5, null)
+  allow_leap                                        = try(each.value.allow_leap, null)
+  allow_eap_tls                                     = try(each.value.allow_eap_tls, null)
+  allow_eap_ttls                                    = try(each.value.allow_eap_ttls, null)
+  allow_eap_fast                                    = try(each.value.allow_eap_fast, null)
+  allow_peap                                        = try(each.value.allow_peap, null)
+  allow_teap                                        = try(each.value.allow_teap, null)
+  allow_preferred_eap_protocol                      = try(each.value.allow_preferred_eap_protocol, null)
+  preferred_eap_protocol                            = try(each.value.preferred_eap_protocol, null)
+  eap_tls_l_bit                                     = try(each.value.eap_tls_l_bit, null)
+  allow_weak_ciphers_for_eap                        = try(each.value.allow_weak_ciphers_for_eap, null)
+  require_message_auth                              = try(each.value.require_message_auth, null)
+  eap_tls_allow_auth_of_expired_certs               = try(each.value.eap_tls_allow_auth_of_expired_certs, null)
+  eap_tls_enable_stateless_session_resume           = try(each.value.eap_tls_enable_stateless_session_resume, null)
+  eap_tls_session_ticket_ttl                        = try(each.value.eap_tls_session_ticket_ttl, null)
+  eap_tls_session_ticket_ttl_unit                   = try(each.value.eap_tls_session_ticket_ttl_unit, null)
+  eap_tls_session_ticket_percentage                 = try(each.value.eap_tls_session_ticket_percentage, null)
+  peap_allow_peap_eap_ms_chap_v2                    = try(each.value.peap_allow_peap_eap_ms_chap_v2, null)
+  peap_allow_peap_eap_ms_chap_v2_pwd_change         = try(each.value.peap_allow_peap_eap_ms_chap_v2_pwd_change, null)
   peap_allow_peap_eap_ms_chap_v2_pwd_change_retries = try(each.value.peap_allow_peap_eap_ms_chap_v2_pwd_change_retries, null)
-  peap_allow_peap_eap_gtc = try(each.value.peap_allow_peap_eap_gtc, null)
-  peap_allow_peap_eap_gtc_pwd_change = try(each.value.peap_allow_peap_eap_gtc_pwd_change, null)
-  peap_allow_peap_eap_gtc_pwd_change_retries = try(each.value.peap_allow_peap_eap_gtc_pwd_change_retries, null)
-  peap_allow_peap_eap_tls = try(each.value.peap_allow_peap_eap_tls, null)
-  peap_allow_peap_eap_tls_auth_of_expired_certs = try(each.value.peap_allow_peap_eap_tls_auth_of_expired_certs, null)
-  require_cryptobinding = try(each.value.require_cryptobinding, null)
-  peap_peap_v0 = try(each.value.peap_peap_v0, null)
-  eap_ttls_pap_ascii = try(each.value.eap_ttls_pap_ascii, null)
-  eap_ttls_chap = try(each.value.eap_ttls_chap, null)
-  eap_ttls_ms_chap_v1 = try(each.value.eap_ttls_ms_chap_v1, null)
-  eap_ttls_ms_chap_v2 = try(each.value.eap_ttls_ms_chap_v2, null)
-  eap_ttls_eap_md5 = try(each.value.eap_ttls_eap_md5, null)
-  eap_ttls_eap_ms_chap_v2 = try(each.value.eap_ttls_eap_ms_chap_v2, null)
-  eap_ttls_eap_ms_chap_v2_pwd_change = try(each.value.eap_ttls_eap_ms_chap_v2_pwd_change, null)
-  eap_ttls_eap_ms_chap_v2_pwd_change_retries = try(each.value.eap_ttls_eap_ms_chap_v2_pwd_change_retries, null)
-  eap_fast_eap_ms_chap_v2 = try(each.value.eap_fast_eap_ms_chap_v2, null)
-  eap_fast_eap_ms_chap_v2_pwd_change = try(each.value.eap_fast_eap_ms_chap_v2_pwd_change, null)
-  eap_fast_eap_ms_chap_v2_pwd_change_retries = try(each.value.eap_fast_eap_ms_chap_v2_pwd_change_retries, null)
-  eap_fast_eap_gtc = try(each.value.eap_fast_eap_gtc, null)
-  eap_fast_eap_gtc_pwd_change = try(each.value.eap_fast_eap_gtc_pwd_change, null)
-  eap_fast_eap_gtc_pwd_change_retries = try(each.value.eap_fast_eap_gtc_pwd_change_retries, null)
-  eap_fast_eap_tls = try(each.value.eap_fast_eap_tls, null)
-  eap_fast_eap_tls_auth_of_expired_certs = try(each.value.eap_fast_eap_tls_auth_of_expired_certs, null)
-  eap_fast_enable_eap_chaining = try(each.value.eap_fast_enable_eap_chaining, null)
-  eap_fast_use_pacs = try(each.value.eap_fast_use_pacs, null)
-  eap_fast_pacs_tunnel_pac_ttl = try(each.value.eap_fast_pacs_tunnel_pac_ttl, null)
-  eap_fast_pacs_tunnel_pac_ttl_unit = try(each.value.eap_fast_pacs_tunnel_pac_ttl_unit, null)
+  peap_allow_peap_eap_gtc                           = try(each.value.peap_allow_peap_eap_gtc, null)
+  peap_allow_peap_eap_gtc_pwd_change                = try(each.value.peap_allow_peap_eap_gtc_pwd_change, null)
+  peap_allow_peap_eap_gtc_pwd_change_retries        = try(each.value.peap_allow_peap_eap_gtc_pwd_change_retries, null)
+  peap_allow_peap_eap_tls                           = try(each.value.peap_allow_peap_eap_tls, null)
+  peap_allow_peap_eap_tls_auth_of_expired_certs     = try(each.value.peap_allow_peap_eap_tls_auth_of_expired_certs, null)
+  require_cryptobinding                             = try(each.value.require_cryptobinding, null)
+  peap_peap_v0                                      = try(each.value.peap_peap_v0, null)
+  eap_ttls_pap_ascii                                = try(each.value.eap_ttls_pap_ascii, null)
+  eap_ttls_chap                                     = try(each.value.eap_ttls_chap, null)
+  eap_ttls_ms_chap_v1                               = try(each.value.eap_ttls_ms_chap_v1, null)
+  eap_ttls_ms_chap_v2                               = try(each.value.eap_ttls_ms_chap_v2, null)
+  eap_ttls_eap_md5                                  = try(each.value.eap_ttls_eap_md5, null)
+  eap_ttls_eap_ms_chap_v2                           = try(each.value.eap_ttls_eap_ms_chap_v2, null)
+  eap_ttls_eap_ms_chap_v2_pwd_change                = try(each.value.eap_ttls_eap_ms_chap_v2_pwd_change, null)
+  eap_ttls_eap_ms_chap_v2_pwd_change_retries        = try(each.value.eap_ttls_eap_ms_chap_v2_pwd_change_retries, null)
+  eap_fast_eap_ms_chap_v2                           = try(each.value.eap_fast_eap_ms_chap_v2, null)
+  eap_fast_eap_ms_chap_v2_pwd_change                = try(each.value.eap_fast_eap_ms_chap_v2_pwd_change, null)
+  eap_fast_eap_ms_chap_v2_pwd_change_retries        = try(each.value.eap_fast_eap_ms_chap_v2_pwd_change_retries, null)
+  eap_fast_eap_gtc                                  = try(each.value.eap_fast_eap_gtc, null)
+  eap_fast_eap_gtc_pwd_change                       = try(each.value.eap_fast_eap_gtc_pwd_change, null)
+  eap_fast_eap_gtc_pwd_change_retries               = try(each.value.eap_fast_eap_gtc_pwd_change_retries, null)
+  eap_fast_eap_tls                                  = try(each.value.eap_fast_eap_tls, null)
+  eap_fast_eap_tls_auth_of_expired_certs            = try(each.value.eap_fast_eap_tls_auth_of_expired_certs, null)
+  eap_fast_enable_eap_chaining                      = try(each.value.eap_fast_enable_eap_chaining, null)
+  eap_fast_use_pacs                                 = try(each.value.eap_fast_use_pacs, null)
+  eap_fast_pacs_tunnel_pac_ttl                      = try(each.value.eap_fast_pacs_tunnel_pac_ttl, null)
+  eap_fast_pacs_tunnel_pac_ttl_unit                 = try(each.value.eap_fast_pacs_tunnel_pac_ttl_unit, null)
   eap_fast_pacs_use_proactive_pac_update_percentage = try(each.value.eap_fast_pacs_use_proactive_pac_update_percentage, null)
-  eap_fast_pacs_allow_anonymous_provisioning = try(each.value.eap_fast_pacs_allow_anonymous_provisioning, null)
-  eap_fast_pacs_allow_authenticated_provisioning = try(each.value.eap_fast_pacs_allow_authenticated_provisioning, null)
-  eap_fast_pacs_server_returns = try(each.value.eap_fast_pacs_server_returns, null)
-  eap_fast_pacs_allow_client_cert = try(each.value.eap_fast_pacs_allow_client_cert, null)
-  eap_fast_pacs_allow_machine_authentication = try(each.value.eap_fast_pacs_allow_machine_authentication, null)
-  eap_fast_pacs_machine_pac_ttl = try(each.value.eap_fast_pacs_machine_pac_ttl, null)
-  eap_fast_pacs_machine_pac_ttl_unit = try(each.value.eap_fast_pacs_machine_pac_ttl_unit, null)
-  eap_fast_pacs_stateless_session_resume = try(each.value.eap_fast_pacs_stateless_session_resume, null)
-  eap_fast_pacs_authorization_pac_ttl = try(each.value.eap_fast_pacs_authorization_pac_ttl, null)
-  eap_fast_pacs_authorization_pac_ttl_unit = try(each.value.eap_fast_pacs_authorization_pac_ttl_unit, null)
-  eap_fast_accept_client_cert = try(each.value.eap_fast_accept_client_cert, null)
-  eap_fast_allow_machine_authentication = try(each.value.eap_fast_allow_machine_authentication, null)
-  teap_eap_ms_chap_v2 = try(each.value.teap_eap_ms_chap_v2, null)
-  teap_eap_ms_chap_v2_pwd_change = try(each.value.teap_eap_ms_chap_v2_pwd_change, null)
-  teap_eap_ms_chap_v2_pwd_change_retries = try(each.value.teap_eap_ms_chap_v2_pwd_change_retries, null)
-  teap_eap_tls = try(each.value.teap_eap_tls, null)
-  teap_eap_tls_auth_of_expired_certs = try(each.value.teap_eap_tls_auth_of_expired_certs, null)
-  teap_eap_accept_client_cert_during_tunnel_est = try(each.value.teap_eap_accept_client_cert_during_tunnel_est, null)
-  teap_eap_chaining = try(each.value.teap_eap_chaining, null)
-  teap_downgrade_msk = try(each.value.teap_downgrade_msk, null)
-  teap_request_basic_pwd_auth = try(each.value.teap_request_basic_pwd_auth, null)
-  allow_5g = try(each.value.allow_5g, null)
-  
+  eap_fast_pacs_allow_anonymous_provisioning        = try(each.value.eap_fast_pacs_allow_anonymous_provisioning, null)
+  eap_fast_pacs_allow_authenticated_provisioning    = try(each.value.eap_fast_pacs_allow_authenticated_provisioning, null)
+  eap_fast_pacs_server_returns                      = try(each.value.eap_fast_pacs_server_returns, null)
+  eap_fast_pacs_allow_client_cert                   = try(each.value.eap_fast_pacs_allow_client_cert, null)
+  eap_fast_pacs_allow_machine_authentication        = try(each.value.eap_fast_pacs_allow_machine_authentication, null)
+  eap_fast_pacs_machine_pac_ttl                     = try(each.value.eap_fast_pacs_machine_pac_ttl, null)
+  eap_fast_pacs_machine_pac_ttl_unit                = try(each.value.eap_fast_pacs_machine_pac_ttl_unit, null)
+  eap_fast_pacs_stateless_session_resume            = try(each.value.eap_fast_pacs_stateless_session_resume, null)
+  eap_fast_pacs_authorization_pac_ttl               = try(each.value.eap_fast_pacs_authorization_pac_ttl, null)
+  eap_fast_pacs_authorization_pac_ttl_unit          = try(each.value.eap_fast_pacs_authorization_pac_ttl_unit, null)
+  eap_fast_accept_client_cert                       = try(each.value.eap_fast_accept_client_cert, null)
+  eap_fast_allow_machine_authentication             = try(each.value.eap_fast_allow_machine_authentication, null)
+  teap_eap_ms_chap_v2                               = try(each.value.teap_eap_ms_chap_v2, null)
+  teap_eap_ms_chap_v2_pwd_change                    = try(each.value.teap_eap_ms_chap_v2_pwd_change, null)
+  teap_eap_ms_chap_v2_pwd_change_retries            = try(each.value.teap_eap_ms_chap_v2_pwd_change_retries, null)
+  teap_eap_tls                                      = try(each.value.teap_eap_tls, null)
+  teap_eap_tls_auth_of_expired_certs                = try(each.value.teap_eap_tls_auth_of_expired_certs, null)
+  teap_eap_accept_client_cert_during_tunnel_est     = try(each.value.teap_eap_accept_client_cert_during_tunnel_est, null)
+  teap_eap_chaining                                 = try(each.value.teap_eap_chaining, null)
+  teap_downgrade_msk                                = try(each.value.teap_downgrade_msk, null)
+  teap_request_basic_pwd_auth                       = try(each.value.teap_request_basic_pwd_auth, null)
+  allow_5g                                          = try(each.value.allow_5g, null)
+  rsa_pss                                           = try(each.value.rsa_pss, null)
+  display_additional_tls_params                     = try(each.value.display_additional_tls_params, null)
+
   lifecycle {
     ignore_changes = [teap_request_basic_pwd_auth]
   }
 }
+
 #
 # ==================================================================
-# NETWORK ACCESS POLICY SET UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_policy_set_update_rank = try(local.defaults.ise.network_access.network_access_policy_set_update_rank, {})
-
-  # Network Access Policy Set Update Rank (with defaults)
-  network_access_policy_set_update_rank = [for item in try(local.ise.network_access.network_access_policy_set_update_rank, []) : merge(
-    local.defaults_network_access_policy_set_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access policy set update rank
-resource "ise_network_access_policy_set_update_rank" "network_access_policy_set_update_rank" {
-  for_each = { for item in try(local.network_access_policy_set_update_rank, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [policy_set_id]
-  }
-}
-#
-# ==================================================================
-# NETWORK ACCESS CONDITION 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | Condition name |
-# | description | String | False | Condition description |
-# | condition_type | String | True | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | attribute_name | String | False | Dictionary attribute name |
-# | attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | dictionary_name | String | False | Dictionary name |
-# | dictionary_value | String | False | Dictionary value |
-# | operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `LibraryConditionAndBlock` or `LibraryConditionOrBlock`. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_condition = try(local.defaults.ise.network_access.network_access_condition, {})
-
-  # Network Access Condition (with defaults)
-  network_access_condition = [for item in try(local.ise.network_access.network_access_condition, []) : merge(
-    local.defaults_network_access_condition, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_condition.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access condition
-resource "ise_network_access_condition" "network_access_condition" {
-  for_each = { for item in try(local.network_access_condition, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  condition_type = try(each.value.condition_type, null)
-  is_negate = try(each.value.is_negate, null)
-  attribute_name = try(each.value.attribute_name, null)
-  attribute_value = try(each.value.attribute_value, null)
-  dictionary_name = try(each.value.dictionary_name, null)
-  dictionary_value = try(each.value.dictionary_value, null)
-  operator = try(each.value.operator, null)
-  children = try([for i in each.value.children : {
-    name = try(i.name, null),
-    description = try(i.description, null),
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS TIME AND DATE CONDITION 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | Condition name |
-# | description | String | False | Condition description |
-# | is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | week_days | Set | False | Defines for which days this condition will be matched. List of weekdays - `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`. Default - List of all week days. |
-# | week_days_exception | Set | False | Defines for which days this condition will NOT be matched. List of weekdays - `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`. |
-# | start_date | String | False | Start date |
-# | end_date | String | False | End date |
-# | exception_start_date | String | False | Exception start date |
-# | exception_end_date | String | False | Exception end date |
-# | start_time | String | False | Start time |
-# | end_time | String | False | End time |
-# | exception_start_time | String | False | Exception start time |
-# | exception_end_time | String | False | Exception end time |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_time_and_date_condition = try(local.defaults.ise.network_access.network_access_time_and_date_condition, {})
-
-  # Network Access Time And Date Condition (with defaults)
-  network_access_time_and_date_condition = [for item in try(local.ise.network_access.network_access_time_and_date_condition, []) : merge(
-    local.defaults_network_access_time_and_date_condition, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access time and date condition
-resource "ise_network_access_time_and_date_condition" "network_access_time_and_date_condition" {
-  for_each = { for item in try(local.network_access_time_and_date_condition, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  is_negate = try(each.value.is_negate, null)
-  week_days = try(each.value.week_days, null)
-  week_days_exception = try(each.value.week_days_exception, null)
-  start_date = try(each.value.start_date, null)
-  end_date = try(each.value.end_date, null)
-  exception_start_date = try(each.value.exception_start_date, null)
-  exception_end_date = try(each.value.exception_end_date, null)
-  start_time = try(each.value.start_time, null)
-  end_time = try(each.value.end_time, null)
-  exception_start_time = try(each.value.exception_start_time, null)
-  exception_end_time = try(each.value.exception_end_time, null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION EXCEPTION RULE UPDATE RANKS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_exception_rule_update_ranks = try(local.defaults.ise.network_access.network_access_authorization_exception_rule_update_ranks, {})
-
-  # Network Access Authorization Exception Rule Update Ranks (with defaults)
-  network_access_authorization_exception_rule_update_ranks = [for item in try(local.ise.network_access.network_access_authorization_exception_rule_update_ranks, []) : merge(
-    local.defaults_network_access_authorization_exception_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_network_access_authorization_exception_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access authorization exception rule update ranks
-resource "ise_network_access_authorization_exception_rule_update_ranks" "network_access_authorization_exception_rule_update_ranks" {
-  for_each = { for item in try(local.network_access_authorization_exception_rule_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHENTICATION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | identity_source_name | String | False | Identity source name from the identity stores |
-# | if_auth_fail | String | True | Action to perform when authentication fails such as Bad credentials, disabled user and so on |
-# | if_process_fail | String | True | Action to perform when ISE is uanble to access the identity database |
-# | if_user_not_found | String | True | Action to perform when user is not found in any of identity stores |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authentication_rule = try(local.defaults.ise.network_access.network_access_authentication_rule, {})
-
-  # Network Access Authentication Rule (with defaults)
-  network_access_authentication_rule = [for item in try(local.ise.network_access.network_access_authentication_rule, []) : merge(
-    local.defaults_network_access_authentication_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_authentication_rule.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access authentication rule
-resource "ise_network_access_authentication_rule" "network_access_authentication_rule" {
-  for_each = { for item in try(local.network_access_authentication_rule, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  identity_source_name = try(each.value.identity_source_name, null)
-  if_auth_fail = try(each.value.if_auth_fail, null)
-  if_process_fail = try(each.value.if_process_fail, null)
-  if_user_not_found = try(each.value.if_user_not_found, null)
-}
-#
-# ==================================================================
-# DOWNLOADABLE ACL 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the downloadable ACL |
-# | description | String | False | Description |
-# | dacl | String | True | The DACL content |
-# | dacl_type | String | False | The type of ACL |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_downloadable_acl = try(local.defaults.ise.network_access.downloadable_acl, {})
-
-  # Downloadable Acl (with defaults)
-  downloadable_acl = [for item in try(local.ise.network_access.downloadable_acl, []) : merge(
-    local.defaults_downloadable_acl, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create downloadable acl
-resource "ise_downloadable_acl" "downloadable_acl" {
-  for_each = { for item in try(local.downloadable_acl, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  dacl = try(each.value.dacl, null)
-  dacl_type = try(each.value.dacl_type, null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION RULE UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization rule ID |
-# | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_rule_update_rank = try(local.defaults.ise.network_access.network_access_authorization_rule_update_rank, {})
-
-  # Network Access Authorization Rule Update Rank (with defaults)
-  network_access_authorization_rule_update_rank = [for item in try(local.ise.network_access.network_access_authorization_rule_update_rank, []) : merge(
-    local.defaults_network_access_authorization_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access authorization rule update rank
-resource "ise_network_access_authorization_rule_update_rank" "network_access_authorization_rule_update_rank" {
-  for_each = { for item in try(local.network_access_authorization_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
-}
-#
-# ==================================================================
-# NETWORK ACCESS POLICY SET 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | Given name for the policy set, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | description | String | False | The description of the policy set |
-# | is_proxy | Bool | False | Flag which indicates if the policy set service is of type 'Proxy Sequence' or 'Allowed Protocols' |
-# | rank | Int64 | False | The rank (priority) in relation to other policy sets. Lower rank is higher priority. |
-# | service_name | String | True | Policy set service identifier. 'Allowed Protocols' or 'Server Sequence'. |
-# | state | String | False | The state that the policy set is in. A disabled policy set cannot be matched. |
-# | default | Bool | False | Indicates if this policy set is the default one |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_policy_set = try(local.defaults.ise.network_access.network_access_policy_set, {})
-
-  # Network Access Policy Set (with defaults)
-  network_access_policy_set = [for item in try(local.ise.network_access.network_access_policy_set, []) : merge(
-    local.defaults_network_access_policy_set, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_policy_set.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access policy set
-resource "ise_network_access_policy_set" "network_access_policy_set" {
-  for_each = { for item in try(local.network_access_policy_set, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  is_proxy = try(each.value.is_proxy, null)
-  rank = try(each.value.rank, null)
-  service_name = try(each.value.service_name, null)
-  state = try(each.value.state, null)
-  default = try(each.value.default, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION EXCEPTION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | profiles | Set | False | The authorization profile(s) |
-# | security_group | String | False | Security group used in authorization policies |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_exception_rule = try(local.defaults.ise.network_access.network_access_authorization_exception_rule, {})
-
-  # Network Access Authorization Exception Rule (with defaults)
-  network_access_authorization_exception_rule = [for item in try(local.ise.network_access.network_access_authorization_exception_rule, []) : merge(
-    local.defaults_network_access_authorization_exception_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_authorization_exception_rule.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access authorization exception rule
-resource "ise_network_access_authorization_exception_rule" "network_access_authorization_exception_rule" {
-  for_each = { for item in try(local.network_access_authorization_exception_rule, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  profiles = try(each.value.profiles, null)
-  security_group = try(each.value.security_group, null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION GLOBAL EXCEPTION RULE UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization global exception rule ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_global_exception_rule_update_rank = try(local.defaults.ise.network_access.network_access_authorization_global_exception_rule_update_rank, {})
-
-  # Network Access Authorization Global Exception Rule Update Rank (with defaults)
-  network_access_authorization_global_exception_rule_update_rank = [for item in try(local.ise.network_access.network_access_authorization_global_exception_rule_update_rank, []) : merge(
-    local.defaults_network_access_authorization_global_exception_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access authorization global exception rule update rank
-resource "ise_network_access_authorization_global_exception_rule_update_rank" "network_access_authorization_global_exception_rule_update_rank" {
-  for_each = { for item in try(local.network_access_authorization_global_exception_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
-}
-#
-# ==================================================================
-# NETWORK ACCESS POLICY SET UPDATE RANKS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policies | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_policy_set_update_ranks = try(local.defaults.ise.network_access.network_access_policy_set_update_ranks, {})
-
-  # Network Access Policy Set Update Ranks (with defaults)
-  network_access_policy_set_update_ranks = [for item in try(local.ise.network_access.network_access_policy_set_update_ranks, []) : merge(
-    local.defaults_network_access_policy_set_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      policies = [for i in try(item.policies, []) : merge(
-        try(local.defaults_network_access_policy_set_update_ranks.policies, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access policy set update ranks
-resource "ise_network_access_policy_set_update_ranks" "network_access_policy_set_update_ranks" {
-  for_each = { for item in try(local.network_access_policy_set_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policies = try([for i in each.value.policies : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# AUTHORIZATION PROFILE 
+# AUTHORIZATION PROFILE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -800,79 +237,112 @@ resource "ise_network_access_policy_set_update_ranks" "network_access_policy_set
 # | ipv6_dacl_name | String | False | IPv6 DACL name |
 # | airespace_ipv6_acl | String | False | Airespace IPv6 ACL |
 #
+# YAML: ise.network_access.authorization_profile (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for authorization profile (module defaults merged with user defaults)
   defaults_authorization_profile = try(local.defaults.ise.network_access.authorization_profile, {})
 
-  # Authorization Profile (with defaults)
+  # Authorization profile objects with defaults
   authorization_profile = [for item in try(local.ise.network_access.authorization_profile, []) : merge(
-    local.defaults_authorization_profile, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      advanced_attributes = [for i in try(item.advanced_attributes, []) : merge(
-        try(local.defaults_authorization_profile.advanced_attributes, {}),
-        i
-      )]
-    }
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_authorization_profile : k => v if !contains(["advanced_attributes"], k) },
+    item,
+    { for k in ["advanced_attributes"] : k => [for i in item[k] : merge(try(local.defaults_authorization_profile[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create authorization profile
 resource "ise_authorization_profile" "authorization_profile" {
-  for_each = { for item in try(local.authorization_profile, []) : item.name => item }
+  for_each = { for item in local.authorization_profile : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  vlan_name_id = try(each.value.vlan_name_id, null)
-  vlan_tag_id = try(each.value.vlan_tag_id, null)
-  web_redirection_type = try(each.value.web_redirection_type, null)
-  web_redirection_acl = try(each.value.web_redirection_acl, null)
-  web_redirection_portal_name = try(each.value.web_redirection_portal_name, null)
-  web_redirection_static_ip_host_name_fqdn = try(each.value.web_redirection_static_ip_host_name_fqdn, null)
+  name                                                  = try(each.value.name, null)
+  description                                           = try(each.value.description, null)
+  vlan_name_id                                          = try(each.value.vlan_name_id, null)
+  vlan_tag_id                                           = try(each.value.vlan_tag_id, null)
+  web_redirection_type                                  = try(each.value.web_redirection_type, null)
+  web_redirection_acl                                   = try(each.value.web_redirection_acl, null)
+  web_redirection_portal_name                           = try(each.value.web_redirection_portal_name, null)
+  web_redirection_static_ip_host_name_fqdn              = try(each.value.web_redirection_static_ip_host_name_fqdn, null)
   web_redirection_display_certificates_renewal_messages = try(each.value.web_redirection_display_certificates_renewal_messages, null)
-  agentless_posture = try(each.value.agentless_posture, null)
-  access_type = try(each.value.access_type, null)
-  profile_name = try(each.value.profile_name, null)
-  airespace_acl = try(each.value.airespace_acl, null)
-  acl = try(each.value.acl, null)
-  dacl_name = try(each.value.dacl_name, null)
-  auto_smart_port = try(each.value.auto_smart_port, null)
-  interface_template = try(each.value.interface_template, null)
-  ipv6_acl_filter = try(each.value.ipv6_acl_filter, null)
-  avc_profile = try(each.value.avc_profile, null)
-  asa_vpn = try(each.value.asa_vpn, null)
-  unique_identifier = try(each.value.unique_identifier, null)
-  track_movement = try(each.value.track_movement, null)
-  service_template = try(each.value.service_template, null)
-  easywired_session_candidate = try(each.value.easywired_session_candidate, null)
-  voice_domain_permission = try(each.value.voice_domain_permission, null)
-  neat = try(each.value.neat, null)
-  web_auth = try(each.value.web_auth, null)
-  mac_sec_policy = try(each.value.mac_sec_policy, null)
-  reauthentication_connectivity = try(each.value.reauthentication_connectivity, null)
-  reauthentication_timer = try(each.value.reauthentication_timer, null)
-  advanced_attributes = try([for i in each.value.advanced_attributes : {
-    attribute_left_dictionary_name = try(i.attribute_left_dictionary_name, null),
-    attribute_left_name = try(i.attribute_left_name, null),
-    attribute_right_value_type = try(i.attribute_right_value_type, null),
-    attribute_right_value = try(i.attribute_right_value, null),
-    attribute_right_dictionary_name = try(i.attribute_right_dictionary_name, null),
-    attribute_right_name = try(i.attribute_right_name, null)
-  }], null)
-  ipv6_dacl_name = try(each.value.ipv6_dacl_name, null)
+  agentless_posture                                     = try(each.value.agentless_posture, null)
+  access_type                                           = try(each.value.access_type, null)
+  profile_name                                          = try(each.value.profile_name, null)
+  airespace_acl                                         = try(each.value.airespace_acl, null)
+  acl                                                   = try(each.value.acl, null)
+  dacl_name                                             = try(each.value.dacl_name, null)
+  auto_smart_port                                       = try(each.value.auto_smart_port, null)
+  interface_template                                    = try(each.value.interface_template, null)
+  ipv6_acl_filter                                       = try(each.value.ipv6_acl_filter, null)
+  avc_profile                                           = try(each.value.avc_profile, null)
+  asa_vpn                                               = try(each.value.asa_vpn, null)
+  unique_identifier                                     = try(each.value.unique_identifier, null)
+  track_movement                                        = try(each.value.track_movement, null)
+  service_template                                      = try(each.value.service_template, null)
+  easywired_session_candidate                           = try(each.value.easywired_session_candidate, null)
+  voice_domain_permission                               = try(each.value.voice_domain_permission, null)
+  neat                                                  = try(each.value.neat, null)
+  web_auth                                              = try(each.value.web_auth, null)
+  mac_sec_policy                                        = try(each.value.mac_sec_policy, null)
+  reauthentication_connectivity                         = try(each.value.reauthentication_connectivity, null)
+  reauthentication_timer                                = try(each.value.reauthentication_timer, null)
+  advanced_attributes = try(each.value.advanced_attributes, null) == null ? null : [for i1 in each.value.advanced_attributes : {
+    attribute_left_dictionary_name  = try(i1.attribute_left_dictionary_name, null)
+    attribute_left_name             = try(i1.attribute_left_name, null)
+    attribute_right_value_type      = try(i1.attribute_right_value_type, null)
+    attribute_right_value           = try(i1.attribute_right_value, null)
+    attribute_right_dictionary_name = try(i1.attribute_right_dictionary_name, null)
+    attribute_right_name            = try(i1.attribute_right_name, null)
+  }]
+  ipv6_dacl_name     = try(each.value.ipv6_dacl_name, null)
   airespace_ipv6_acl = try(each.value.airespace_ipv6_acl, null)
 }
+
 #
 # ==================================================================
-# NETWORK ACCESS AUTHORIZATION GLOBAL EXCEPTION RULE 
+# DOWNLOADABLE ACL
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
+# | name | String | True | The name of the downloadable ACL |
+# | description | String | False | Description |
+# | dacl | String | True | The DACL content |
+# | dacl_type | String | False | The type of ACL |
+#
+# YAML: ise.network_access.downloadable_acl (list, objects identified by name)
+#
+
+locals {
+  # Defaults for downloadable acl (module defaults merged with user defaults)
+  defaults_downloadable_acl = try(local.defaults.ise.network_access.downloadable_acl, {})
+
+  # Downloadable acl objects with defaults
+  downloadable_acl = [for item in try(local.ise.network_access.downloadable_acl, []) : merge(
+    local.defaults_downloadable_acl,
+    item
+  )]
+}
+
+resource "ise_downloadable_acl" "downloadable_acl" {
+  for_each = { for item in local.downloadable_acl : item.name => item }
+
+  name        = try(each.value.name, null)
+  description = try(each.value.description, null)
+  dacl        = try(each.value.dacl, null)
+  dacl_type   = try(each.value.dacl_type, null)
+}
+
+#
+# ==================================================================
+# NETWORK ACCESS AUTHENTICATION RULE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | policy_set_id | String | False | Policy set ID |
 # | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
+# | default | Bool | False | Indicates if this rule is the default one |
 # | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
 # | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
 # | condition_id | String | False | UUID for condition |
@@ -882,61 +352,1057 @@ resource "ise_authorization_profile" "authorization_profile" {
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | profiles | Set | False | The authorization profile(s) |
-# | security_group | String | False | Security group used in authorization policies |
+# | children | List | False | List of child conditions |
+# | identity_source_name | String | False | Identity source name from the identity stores |
+# | if_auth_fail | String | True | Action to perform when authentication fails such as Bad credentials, disabled user and so on |
+# | if_process_fail | String | True | Action to perform when ISE is uanble to access the identity database |
+# | if_user_not_found | String | True | Action to perform when user is not found in any of identity stores |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_network_access_authentication_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_authentication_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_network_access_authentication_rule_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_global_exception_rule = try(local.defaults.ise.network_access.network_access_authorization_global_exception_rule, {})
+  # Defaults for network access authentication rule (module defaults merged with user defaults)
+  defaults_network_access_authentication_rule = try(local.defaults.ise.network_access.network_access_authentication_rule, {})
 
-  # Network Access Authorization Global Exception Rule (with defaults)
-  network_access_authorization_global_exception_rule = [for item in try(local.ise.network_access.network_access_authorization_global_exception_rule, []) : merge(
-    local.defaults_network_access_authorization_global_exception_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_authorization_global_exception_rule.children, {}),
-        i
-      )]
-    }
+  # Network access authentication rule objects with defaults
+  network_access_authentication_rule = [for item in try(local.ise.network_access.network_access_authentication_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_authentication_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_authentication_rule[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create network access authorization global exception rule
-resource "ise_network_access_authorization_global_exception_rule" "network_access_authorization_global_exception_rule" {
-  for_each = { for item in try(local.network_access_authorization_global_exception_rule, []) : item.name => item }
+resource "ise_network_access_authentication_rule" "network_access_authentication_rule" {
+  for_each = { for item in local.network_access_authentication_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  profiles = try(each.value.profiles, null)
-  security_group = try(each.value.security_group, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  identity_source_name = try(each.value.identity_source_name, null)
+  if_auth_fail         = try(each.value.if_auth_fail, null)
+  if_process_fail      = try(each.value.if_process_fail, null)
+  if_user_not_found    = try(each.value.if_user_not_found, null)
 }
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS AUTHENTICATION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of network access authentication rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Network access authentication rule objects with a rank, grouped by policy_set_name
+  network_access_authentication_rule_ranks = {
+    for item in local.network_access_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+  }
+}
+
+resource "ise_network_access_authentication_rule_update_ranks" "network_access_authentication_rule_update_ranks" {
+  for_each = local.network_access_authentication_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_network_access_authentication_rule.network_access_authentication_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
 #
 # ==================================================================
-# NETWORK ACCESS DICTIONARY 
+# NETWORK ACCESS AUTHORIZATION EXCEPTION RULE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | policy_set_id | String | False | Policy set ID |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | default | Bool | False | Indicates if this rule is the default one |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | profiles | List | False | The authorization profile(s) |
+# | security_group | String | False | Security group used in authorization policies |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_network_access_authorization_exception_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_authorization_exception_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_network_access_authorization_exception_rule_update_ranks.
+#
+
+locals {
+  # Defaults for network access authorization exception rule (module defaults merged with user defaults)
+  defaults_network_access_authorization_exception_rule = try(local.defaults.ise.network_access.network_access_authorization_exception_rule, {})
+
+  # Network access authorization exception rule objects with defaults
+  network_access_authorization_exception_rule = [for item in try(local.ise.network_access.network_access_authorization_exception_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_authorization_exception_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_authorization_exception_rule[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_network_access_authorization_exception_rule" "network_access_authorization_exception_rule" {
+  for_each = { for item in local.network_access_authorization_exception_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
+
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  profiles       = try(each.value.profiles, null)
+  security_group = try(each.value.security_group, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS AUTHORIZATION EXCEPTION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of network access authorization exception rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Network access authorization exception rule objects with a rank, grouped by policy_set_name
+  network_access_authorization_exception_rule_ranks = {
+    for item in local.network_access_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+  }
+}
+
+resource "ise_network_access_authorization_exception_rule_update_ranks" "network_access_authorization_exception_rule_update_ranks" {
+  for_each = local.network_access_authorization_exception_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_network_access_authorization_exception_rule.network_access_authorization_exception_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
+#
+# ==================================================================
+# NETWORK ACCESS AUTHORIZATION GLOBAL EXCEPTION RULE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | profiles | List | False | The authorization profile(s) |
+# | security_group | String | False | Security group used in authorization policies |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_network_access_authorization_global_exception_rule_update_ranks` |
+# | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_authorization_global_exception_rule (list, objects identified by name)
+# The rank attribute is applied through ise_network_access_authorization_global_exception_rule_update_ranks.
+#
+
+locals {
+  # Defaults for network access authorization global exception rule (module defaults merged with user defaults)
+  defaults_network_access_authorization_global_exception_rule = try(local.defaults.ise.network_access.network_access_authorization_global_exception_rule, {})
+
+  # Network access authorization global exception rule objects with defaults
+  network_access_authorization_global_exception_rule = [for item in try(local.ise.network_access.network_access_authorization_global_exception_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_authorization_global_exception_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_authorization_global_exception_rule[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_network_access_authorization_global_exception_rule" "network_access_authorization_global_exception_rule" {
+  for_each = { for item in local.network_access_authorization_global_exception_rule : item.name => item }
+
+  name                       = try(each.value.name, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  profiles       = try(each.value.profiles, null)
+  security_group = try(each.value.security_group, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS AUTHORIZATION GLOBAL EXCEPTION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of network access authorization global exception rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Network access authorization global exception rule objects with a rank
+  network_access_authorization_global_exception_rule_ranks = [for item in local.network_access_authorization_global_exception_rule : item if try(item.rank, null) != null && !try(item.default, false)]
+}
+
+resource "ise_network_access_authorization_global_exception_rule_update_ranks" "network_access_authorization_global_exception_rule_update_ranks" {
+  count = length(local.network_access_authorization_global_exception_rule_ranks) > 0 ? 1 : 0
+
+  rules = [for item in local.network_access_authorization_global_exception_rule_ranks : {
+    id   = ise_network_access_authorization_global_exception_rule.network_access_authorization_global_exception_rule[item.name].id
+    rank = item.rank
+  }]
+}
+
+#
+# ==================================================================
+# NETWORK ACCESS AUTHORIZATION RULE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | policy_set_id | String | False | Policy set ID |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | default | Bool | False | Indicates if this rule is the default one |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | profiles | Set | False | The authorization profile(s) |
+# | security_group | String | False | Security group used in authorization policies |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_network_access_authorization_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced network access policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_authorization_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_network_access_authorization_rule_update_ranks.
+#
+
+locals {
+  # Defaults for network access authorization rule (module defaults merged with user defaults)
+  defaults_network_access_authorization_rule = try(local.defaults.ise.network_access.network_access_authorization_rule, {})
+
+  # Network access authorization rule objects with defaults
+  network_access_authorization_rule = [for item in try(local.ise.network_access.network_access_authorization_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_authorization_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_authorization_rule[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_network_access_authorization_rule" "network_access_authorization_rule" {
+  for_each = { for item in local.network_access_authorization_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
+
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  profiles       = try(each.value.profiles, null)
+  security_group = try(each.value.security_group, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS AUTHORIZATION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of network access authorization rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Network access authorization rule objects with a rank, grouped by policy_set_name
+  network_access_authorization_rule_ranks = {
+    for item in local.network_access_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+  }
+}
+
+resource "ise_network_access_authorization_rule_update_ranks" "network_access_authorization_rule_update_ranks" {
+  for_each = local.network_access_authorization_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.network_access_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_network_access_authorization_rule.network_access_authorization_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
+#
+# ==================================================================
+# NETWORK ACCESS CONDITION
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | Condition name |
+# | description | String | False | Condition description |
+# | condition_type | String | True | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | attribute_name | String | False | Dictionary attribute name |
+# | attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | dictionary_name | String | False | Dictionary name |
+# | dictionary_value | String | False | Dictionary value |
+# | operator | String | False | Equality operator |
+# | children | List | False | List of child conditions. |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_condition (list, objects identified by name)
+#
+
+locals {
+  # Defaults for network access condition (module defaults merged with user defaults)
+  defaults_network_access_condition = try(local.defaults.ise.network_access.network_access_condition, {})
+
+  # Network access condition objects with defaults
+  network_access_condition = [for item in try(local.ise.network_access.network_access_condition, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_condition : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_condition[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+locals {
+  # Managed network access condition objects each object refers to. Objects are
+  # created in tiers so that referenced objects exist before the objects using them.
+  network_access_condition_self_references = {
+    for item in local.network_access_condition : item.name => [
+      for n in distinct(compact(flatten([
+        [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]],
+      ]))) : n if contains([for i in local.network_access_condition : i.name], n)
+    ]
+  }
+  network_access_condition_tier0    = [for k, refs in local.network_access_condition_self_references : k if length(refs) == 0]
+  network_access_condition_tier1    = [for k, refs in local.network_access_condition_self_references : k if !contains(concat(local.network_access_condition_tier0), k) && alltrue([for n in refs : contains(concat(local.network_access_condition_tier0), n)])]
+  network_access_condition_tier2    = [for k, refs in local.network_access_condition_self_references : k if !contains(concat(local.network_access_condition_tier0, local.network_access_condition_tier1), k) && alltrue([for n in refs : contains(concat(local.network_access_condition_tier0, local.network_access_condition_tier1), n)])]
+  network_access_condition_tier3    = [for k, refs in local.network_access_condition_self_references : k if !contains(concat(local.network_access_condition_tier0, local.network_access_condition_tier1, local.network_access_condition_tier2), k) && alltrue([for n in refs : contains(concat(local.network_access_condition_tier0, local.network_access_condition_tier1, local.network_access_condition_tier2), n)])]
+  network_access_condition_untiered = [for k in keys(local.network_access_condition_self_references) : k if !contains(concat(local.network_access_condition_tier0, local.network_access_condition_tier1, local.network_access_condition_tier2, local.network_access_condition_tier3), k)]
+}
+
+resource "terraform_data" "network_access_condition_tiers" {
+  lifecycle {
+    precondition {
+      condition     = length(local.network_access_condition_untiered) == 0
+      error_message = "Network access condition objects refer to each other in a loop or more than 3 levels deep: ${join(", ", local.network_access_condition_untiered)}"
+    }
+  }
+}
+
+resource "ise_network_access_condition" "network_access_condition" {
+  for_each = { for item in local.network_access_condition : item.name => item if contains(local.network_access_condition_tier0, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier0[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+resource "ise_network_access_condition" "network_access_condition_tier1" {
+  for_each = { for item in local.network_access_condition : item.name => item if contains(local.network_access_condition_tier1, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier1[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+resource "ise_network_access_condition" "network_access_condition_tier2" {
+  for_each = { for item in local.network_access_condition : item.name => item if contains(local.network_access_condition_tier2, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier2[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+resource "ise_network_access_condition" "network_access_condition_tier3" {
+  for_each = { for item in local.network_access_condition : item.name => item if contains(local.network_access_condition_tier3, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids_tier3[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS CONDITION REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network access condition objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_access_condition_referenced_names = distinct(compact(flatten([
+    [for item in local.network_access_authentication_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.network_access_authorization_exception_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.network_access_authorization_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.network_access_policy_set : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.network_access_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+  ])))
+  network_access_condition_managed_names   = [for item in local.network_access_condition : item.name]
+  network_access_condition_unmanaged_names = [for n in local.network_access_condition_referenced_names : n if !contains(local.network_access_condition_managed_names, n)]
+}
+
+data "ise_network_access_condition" "network_access_condition" {
+  for_each = toset(local.network_access_condition_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_access_condition_lookup_ids = { for k, v in data.ise_network_access_condition.network_access_condition : k => v.id }
+  network_access_condition_ids_tier0 = merge(
+    local.network_access_condition_lookup_ids,
+  )
+  network_access_condition_ids_tier1 = merge(
+    local.network_access_condition_lookup_ids,
+    { for k, v in ise_network_access_condition.network_access_condition : k => v.id },
+  )
+  network_access_condition_ids_tier2 = merge(
+    local.network_access_condition_lookup_ids,
+    { for k, v in ise_network_access_condition.network_access_condition : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier1 : k => v.id },
+  )
+  network_access_condition_ids_tier3 = merge(
+    local.network_access_condition_lookup_ids,
+    { for k, v in ise_network_access_condition.network_access_condition : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier1 : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier2 : k => v.id },
+  )
+  network_access_condition_ids = merge(
+    local.network_access_condition_lookup_ids,
+    { for k, v in ise_network_access_condition.network_access_condition : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier1 : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier2 : k => v.id },
+    { for k, v in ise_network_access_condition.network_access_condition_tier3 : k => v.id },
+  )
+}
+
+#
+# ==================================================================
+# NETWORK ACCESS DICTIONARY
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -946,158 +1412,88 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
 # | version | String | True | The version of the dictionary |
 # | dictionary_attr_type | String | True | The dictionary attribute type |
 #
+# YAML: ise.network_access.network_access_dictionary (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for network access dictionary (module defaults merged with user defaults)
   defaults_network_access_dictionary = try(local.defaults.ise.network_access.network_access_dictionary, {})
 
-  # Network Access Dictionary (with defaults)
+  # Network access dictionary objects with defaults
   network_access_dictionary = [for item in try(local.ise.network_access.network_access_dictionary, []) : merge(
-    local.defaults_network_access_dictionary, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_network_access_dictionary,
+    item
   )]
 }
 
-# Create network access dictionary
 resource "ise_network_access_dictionary" "network_access_dictionary" {
-  for_each = { for item in try(local.network_access_dictionary, []) : item.name => item }
+  for_each = { for item in local.network_access_dictionary : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  version = try(each.value.version, null)
+  name                 = try(each.value.name, null)
+  description          = try(each.value.description, null)
+  version              = try(each.value.version, null)
   dictionary_attr_type = try(each.value.dictionary_attr_type, null)
 }
+
 #
 # ==================================================================
-# NETWORK ACCESS AUTHENTICATION RULE UPDATE RANKS 
+# NETWORK ACCESS DICTIONARY ATTRIBUTE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
+# | dictionary_name | String | False | The name of the dictionary the attribute belongs to |
+# | name | String | True | The dictionary attribute name |
+# | description | String | False | The description of the dictionary attribute |
+# | data_type | String | True | The data type for the dictionary attribute |
+# | direction_type | String | False | The direction type for the dictionary attribute |
+# | internal_name | String | False | The internal name of the dictionary attribute |
+# | allowed_values | List | False | List of allowed values for the attribute |
+#
+# YAML: ise.network_access.network_access_dictionary_attribute (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authentication_rule_update_ranks = try(local.defaults.ise.network_access.network_access_authentication_rule_update_ranks, {})
+  # Defaults for network access dictionary attribute (module defaults merged with user defaults)
+  defaults_network_access_dictionary_attribute = try(local.defaults.ise.network_access.network_access_dictionary_attribute, {})
 
-  # Network Access Authentication Rule Update Ranks (with defaults)
-  network_access_authentication_rule_update_ranks = [for item in try(local.ise.network_access.network_access_authentication_rule_update_ranks, []) : merge(
-    local.defaults_network_access_authentication_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_network_access_authentication_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
+  # Network access dictionary attribute objects with defaults
+  network_access_dictionary_attribute = [for item in try(local.ise.network_access.network_access_dictionary_attribute, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_dictionary_attribute : k => v if !contains(["allowed_values"], k) },
+    item,
+    { for k in ["allowed_values"] : k => [for i in item[k] : merge(try(local.defaults_network_access_dictionary_attribute[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create network access authentication rule update ranks
-resource "ise_network_access_authentication_rule_update_ranks" "network_access_authentication_rule_update_ranks" {
-  for_each = { for item in try(local.network_access_authentication_rule_update_ranks, []) : item.name => item }
+resource "ise_network_access_dictionary_attribute" "network_access_dictionary_attribute" {
+  for_each = { for item in local.network_access_dictionary_attribute : item.name => item }
 
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
+  dictionary_name = try(each.value.dictionary_name, null)
+  name            = try(each.value.name, null)
+  description     = try(each.value.description, null)
+  data_type       = try(each.value.data_type, null)
+  direction_type  = try(each.value.direction_type, null)
+  internal_name   = try(each.value.internal_name, null)
+  allowed_values = try(each.value.allowed_values, null) == null ? null : [for i1 in each.value.allowed_values : {
+    key   = sensitive(try(i1.key, null))
+    value = try(i1.value, null)
+  }]
 }
+
 #
 # ==================================================================
-# NETWORK ACCESS AUTHORIZATION RULE UPDATE RANKS 
+# NETWORK ACCESS POLICY SET
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_rule_update_ranks = try(local.defaults.ise.network_access.network_access_authorization_rule_update_ranks, {})
-
-  # Network Access Authorization Rule Update Ranks (with defaults)
-  network_access_authorization_rule_update_ranks = [for item in try(local.ise.network_access.network_access_authorization_rule_update_ranks, []) : merge(
-    local.defaults_network_access_authorization_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_network_access_authorization_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create network access authorization rule update ranks
-resource "ise_network_access_authorization_rule_update_ranks" "network_access_authorization_rule_update_ranks" {
-  for_each = { for item in try(local.network_access_authorization_rule_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHENTICATION RULE UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authentication rule ID |
-# | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authentication_rule_update_rank = try(local.defaults.ise.network_access.network_access_authentication_rule_update_rank, {})
-
-  # Network Access Authentication Rule Update Rank (with defaults)
-  network_access_authentication_rule_update_rank = [for item in try(local.ise.network_access.network_access_authentication_rule_update_rank, []) : merge(
-    local.defaults_network_access_authentication_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access authentication rule update rank
-resource "ise_network_access_authentication_rule_update_rank" "network_access_authentication_rule_update_rank" {
-  for_each = { for item in try(local.network_access_authentication_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | name | String | True | Given name for the policy set, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | description | String | False | The description of the policy set |
+# | is_proxy | Bool | False | Flag which indicates if the policy set service is of type 'Proxy Sequence' or 'Allowed Protocols' |
+# | service_name | String | True | Policy set service identifier. 'Allowed Protocols' or 'Server Sequence'. |
+# | state | String | False | The state that the policy set is in. A disabled policy set cannot be matched. |
+# | default | Bool | False | Indicates if this policy set is the default one |
 # | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
@@ -1106,132 +1502,214 @@ resource "ise_network_access_authentication_rule_update_rank" "network_access_au
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | profiles | Set | False | The authorization profile(s) |
-# | security_group | String | False | Security group used in authorization policies |
+# | children | List | False | List of child conditions |
+# | rank | Int64 | False | The rank (priority) in relation to other policy sets. Lower rank is higher priority, applied through `ise_network_access_policy_set_update_ranks` |
+# | condition_name | String | False | Name of the referenced network access condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced network access condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.network_access.network_access_policy_set (list, objects identified by name)
+# The rank attribute is applied through ise_network_access_policy_set_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_rule = try(local.defaults.ise.network_access.network_access_authorization_rule, {})
+  # Defaults for network access policy set (module defaults merged with user defaults)
+  defaults_network_access_policy_set = try(local.defaults.ise.network_access.network_access_policy_set, {})
 
-  # Network Access Authorization Rule (with defaults)
-  network_access_authorization_rule = [for item in try(local.ise.network_access.network_access_authorization_rule, []) : merge(
-    local.defaults_network_access_authorization_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_network_access_authorization_rule.children, {}),
-        i
-      )]
-    }
+  # Network access policy set objects with defaults
+  network_access_policy_set = [for item in try(local.ise.network_access.network_access_policy_set, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_network_access_policy_set : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_network_access_policy_set[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create network access authorization rule
-resource "ise_network_access_authorization_rule" "network_access_authorization_rule" {
-  for_each = { for item in try(local.network_access_authorization_rule, []) : item.name => item }
+resource "ise_network_access_policy_set" "network_access_policy_set" {
+  for_each = { for item in local.network_access_policy_set : item.name => item }
 
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
+  name                       = try(each.value.name, null)
+  description                = try(each.value.description, null)
+  is_proxy                   = try(each.value.is_proxy, null)
+  service_name               = try(each.value.service_name, null)
+  state                      = try(each.value.state, null)
+  default                    = try(each.value.default, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  profiles = try(each.value.profiles, null)
-  security_group = try(each.value.security_group, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.network_access_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
 }
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS POLICY SET RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of network access policy set objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Network access policy set objects with a rank
+  network_access_policy_set_ranks = [for item in local.network_access_policy_set : item if try(item.rank, null) != null && !try(item.default, false)]
+}
+
+resource "ise_network_access_policy_set_update_ranks" "network_access_policy_set_update_ranks" {
+  count = length(local.network_access_policy_set_ranks) > 0 ? 1 : 0
+
+  policies = [for item in local.network_access_policy_set_ranks : {
+    id   = ise_network_access_policy_set.network_access_policy_set[item.name].id
+    rank = item.rank
+  }]
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS POLICY SET REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network access policy set objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_access_policy_set_referenced_names = distinct(compact(flatten([
+    [for item in local.network_access_authentication_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+    [for item in local.network_access_authorization_exception_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+    [for item in local.network_access_authorization_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+  ])))
+  network_access_policy_set_managed_names   = [for item in local.network_access_policy_set : item.name]
+  network_access_policy_set_unmanaged_names = [for n in local.network_access_policy_set_referenced_names : n if !contains(local.network_access_policy_set_managed_names, n)]
+}
+
+data "ise_network_access_policy_set" "network_access_policy_set" {
+  for_each = toset(local.network_access_policy_set_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_access_policy_set_lookup_ids = { for k, v in data.ise_network_access_policy_set.network_access_policy_set : k => v.id }
+  network_access_policy_set_ids = merge(
+    local.network_access_policy_set_lookup_ids,
+    { for k, v in ise_network_access_policy_set.network_access_policy_set : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# NETWORK ACCESS AUTHORIZATION GLOBAL EXCEPTION RULE UPDATE RANKS 
+# NETWORK ACCESS TIME AND DATE CONDITION
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | rules | List | False |  |
+# | name | String | True | Condition name |
+# | description | String | False | Condition description |
+# | is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | week_days | Set | False | Defines for which days this condition will be matched. List of weekdays - `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`. Default - List of all week days. |
+# | week_days_exception | Set | False | Defines for which days this condition will NOT be matched. List of weekdays - `Monday`, `Tuesday`, `Wednesday`, `Thursday`, `Friday`, `Saturday`, `Sunday`. |
+# | start_date | String | False | Start date |
+# | end_date | String | False | End date |
+# | exception_start_date | String | False | Exception start date |
+# | exception_end_date | String | False | Exception end date |
+# | start_time | String | False | Start time |
+# | end_time | String | False | End time |
+# | exception_start_time | String | False | Exception start time |
+# | exception_end_time | String | False | Exception end time |
+#
+# YAML: ise.network_access.network_access_time_and_date_condition (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_global_exception_rule_update_ranks = try(local.defaults.ise.network_access.network_access_authorization_global_exception_rule_update_ranks, {})
+  # Defaults for network access time and date condition (module defaults merged with user defaults)
+  defaults_network_access_time_and_date_condition = try(local.defaults.ise.network_access.network_access_time_and_date_condition, {})
 
-  # Network Access Authorization Global Exception Rule Update Ranks (with defaults)
-  network_access_authorization_global_exception_rule_update_ranks = [for item in try(local.ise.network_access.network_access_authorization_global_exception_rule_update_ranks, []) : merge(
-    local.defaults_network_access_authorization_global_exception_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_network_access_authorization_global_exception_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
+  # Network access time and date condition objects with defaults
+  network_access_time_and_date_condition = [for item in try(local.ise.network_access.network_access_time_and_date_condition, []) : merge(
+    local.defaults_network_access_time_and_date_condition,
+    item
   )]
 }
 
-# Create network access authorization global exception rule update ranks
-resource "ise_network_access_authorization_global_exception_rule_update_ranks" "network_access_authorization_global_exception_rule_update_ranks" {
-  for_each = { for item in try(local.network_access_authorization_global_exception_rule_update_ranks, []) : item.name => item }
+resource "ise_network_access_time_and_date_condition" "network_access_time_and_date_condition" {
+  for_each = { for item in local.network_access_time_and_date_condition : item.name => item }
 
-  # General attributes
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# NETWORK ACCESS AUTHORIZATION EXCEPTION RULE UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization exception rule ID |
-# | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_network_access_authorization_exception_rule_update_rank = try(local.defaults.ise.network_access.network_access_authorization_exception_rule_update_rank, {})
-
-  # Network Access Authorization Exception Rule Update Rank (with defaults)
-  network_access_authorization_exception_rule_update_rank = [for item in try(local.ise.network_access.network_access_authorization_exception_rule_update_rank, []) : merge(
-    local.defaults_network_access_authorization_exception_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create network access authorization exception rule update rank
-resource "ise_network_access_authorization_exception_rule_update_rank" "network_access_authorization_exception_rule_update_rank" {
-  for_each = { for item in try(local.network_access_authorization_exception_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
+  name                 = try(each.value.name, null)
+  description          = try(each.value.description, null)
+  is_negate            = try(each.value.is_negate, null)
+  week_days            = try(each.value.week_days, null)
+  week_days_exception  = try(each.value.week_days_exception, null)
+  start_date           = try(each.value.start_date, null)
+  end_date             = try(each.value.end_date, null)
+  exception_start_date = try(each.value.exception_start_date, null)
+  exception_end_date   = try(each.value.exception_end_date, null)
+  start_time           = try(each.value.start_time, null)
+  end_time             = try(each.value.end_time, null)
+  exception_start_time = try(each.value.exception_start_time, null)
+  exception_end_time   = try(each.value.exception_end_time, null)
 }

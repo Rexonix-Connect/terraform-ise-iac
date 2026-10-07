@@ -9,7 +9,177 @@
 #
 #
 # ==================================================================
-# TRUSTSEC EGRESS MATRIX CELL 
+# SXP CONNECTION
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | False | The name of the SXP connection. |
+# | description | String | False | The description of the SXP connection |
+# | sxp_peer | String | True | The name of the SXP peer. |
+# | sxp_vpn | String | True | The name of the SXP VPN. Since Cisco ISE 3.0, a comma-separated list of multiple SXP VPN names is supported. |
+# | sxp_node | String | True | The name of the SXP node. |
+# | ip_address | String | True | The IP address of the SXP peer. |
+# | sxp_mode | String | True | The SXP connection mode |
+# | sxp_version | String | True | The SXP protocol version negotiated with the peer |
+# | enabled | Bool | True | Enables or disables the SXP connection. |
+#
+# YAML: ise.trustsec.sxp_connection (list, objects identified by name)
+#
+
+locals {
+  # Defaults for sxp connection (module defaults merged with user defaults)
+  defaults_sxp_connection = try(local.defaults.ise.trustsec.sxp_connection, {})
+
+  # Sxp connection objects with defaults
+  sxp_connection = [for item in try(local.ise.trustsec.sxp_connection, []) : merge(
+    local.defaults_sxp_connection,
+    item
+  )]
+}
+
+resource "ise_sxp_connection" "sxp_connection" {
+  for_each = { for item in local.sxp_connection : item.name => item }
+
+  name        = try(each.value.name, null)
+  description = try(each.value.description, null)
+  sxp_peer    = try(each.value.sxp_peer, null)
+  sxp_vpn     = try(each.value.sxp_vpn, null)
+  sxp_node    = try(each.value.sxp_node, null)
+  ip_address  = try(each.value.ip_address, null)
+  sxp_mode    = try(each.value.sxp_mode, null)
+  sxp_version = try(each.value.sxp_version, null)
+  enabled     = try(each.value.enabled, null)
+
+  lifecycle {
+    ignore_changes = [name, description]
+  }
+}
+
+#
+# ==================================================================
+# SXP DOMAIN FILTER
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | False | Resource name |
+# | description | String | False | Description |
+# | subnet | String | False | Subnet for filter policy (hostname is not supported). At least one of subnet or sgt or vn should be defined |
+# | sgt | String | False | SGT name or ID. At least one of subnet or sgt or vn should be defined |
+# | vn | String | False | Virtual Network. At least one of subnet or sgt or vn should be defined |
+# | domains | String | True | List of SXP Domains, separated with comma |
+#
+# YAML: ise.trustsec.sxp_domain_filter (list, objects identified by name)
+#
+
+locals {
+  # Defaults for sxp domain filter (module defaults merged with user defaults)
+  defaults_sxp_domain_filter = try(local.defaults.ise.trustsec.sxp_domain_filter, {})
+
+  # Sxp domain filter objects with defaults
+  sxp_domain_filter = [for item in try(local.ise.trustsec.sxp_domain_filter, []) : merge(
+    local.defaults_sxp_domain_filter,
+    item
+  )]
+}
+
+resource "ise_sxp_domain_filter" "sxp_domain_filter" {
+  for_each = { for item in local.sxp_domain_filter : item.name => item }
+
+  name        = try(each.value.name, null)
+  description = try(each.value.description, null)
+  subnet      = try(each.value.subnet, null)
+  sgt         = try(each.value.sgt, null)
+  vn          = try(each.value.vn, null)
+  domains     = try(each.value.domains, null)
+
+  lifecycle {
+    ignore_changes = [sgt]
+  }
+}
+
+#
+# ==================================================================
+# SXP LOCAL BINDING
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | False | The name of the SXP local binding. |
+# | description | String | False | The description of the SXP local binding. |
+# | binding_name | String | False | The binding name. Deprecated since Cisco ISE 3.0. |
+# | ip_address_or_host | String | True | The IP address for the static SGT mapping. Hostnames are not supported. |
+# | sgt | String | True | The name of the Security Group (SGT) to map to the IP address. Cisco ISE renders this as `<name> (<decimal>/<hex>)` on read and rejects that form on write, so only the name is kept in state. |
+# | sxp_vpn | String | False | Comma-separated list of SXP VPN domains. Since Cisco ISE 3.0, at least one of `sxp_vpn` or `vns` must be defined. |
+# | vns | String | False | Comma-separated list of Virtual Networks. Added in Cisco ISE 3.0. At least one of `sxp_vpn` or `vns` must be defined. |
+#
+# YAML: ise.trustsec.sxp_local_binding (list, objects identified by name)
+#
+
+locals {
+  # Defaults for sxp local binding (module defaults merged with user defaults)
+  defaults_sxp_local_binding = try(local.defaults.ise.trustsec.sxp_local_binding, {})
+
+  # Sxp local binding objects with defaults
+  sxp_local_binding = [for item in try(local.ise.trustsec.sxp_local_binding, []) : merge(
+    local.defaults_sxp_local_binding,
+    item
+  )]
+}
+
+resource "ise_sxp_local_binding" "sxp_local_binding" {
+  for_each = { for item in local.sxp_local_binding : item.name => item }
+
+  name               = try(each.value.name, null)
+  description        = try(each.value.description, null)
+  binding_name       = try(each.value.binding_name, null)
+  ip_address_or_host = try(each.value.ip_address_or_host, null)
+  sgt                = try(each.value.sgt, null)
+  sxp_vpn            = try(each.value.sxp_vpn, null)
+  vns                = try(each.value.vns, null)
+
+  lifecycle {
+    ignore_changes = [name, description]
+  }
+}
+
+#
+# ==================================================================
+# SXP VPN
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | False | The name of the SXP VPN. |
+# | description | String | False | The description of the SXP VPN. |
+# | sxp_vpn_name | String | True | The name of the SXP VPN domain, for example `default`. |
+#
+# YAML: ise.trustsec.sxp_vpn (list, objects identified by name)
+#
+
+locals {
+  # Defaults for sxp vpn (module defaults merged with user defaults)
+  defaults_sxp_vpn = try(local.defaults.ise.trustsec.sxp_vpn, {})
+
+  # Sxp vpn objects with defaults
+  sxp_vpn = [for item in try(local.ise.trustsec.sxp_vpn, []) : merge(
+    local.defaults_sxp_vpn,
+    item
+  )]
+}
+
+resource "ise_sxp_vpn" "sxp_vpn" {
+  for_each = { for item in local.sxp_vpn : item.name => item }
+
+  name         = try(each.value.name, null)
+  description  = try(each.value.description, null)
+  sxp_vpn_name = try(each.value.sxp_vpn_name, null)
+}
+
+#
+# ==================================================================
+# TRUSTSEC EGRESS MATRIX CELL
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -20,36 +190,104 @@
 # | sgacls | Set | False | List of TrustSec Security Groups ACLs |
 # | source_sgt_id | String | True | Source Trustsec Security Group ID |
 # | destination_sgt_id | String | True | Destination Trustsec Security Group ID |
+# | matrix_id | String | False | Matrix ID. Default value is Production Matrix Id, when no value is provided during creation. (works with ISE 3.4 p2 and above) |
+# | source_sgt_name | String | False | Name of the referenced trustsec security group, alternative to `source_sgt_id` |
+# | destination_sgt_name | String | False | Name of the referenced trustsec security group, alternative to `destination_sgt_id` |
+# | matrix_name | String | False | Name of the referenced trustsec matrix, alternative to `matrix_id` |
+#
+# YAML: ise.trustsec.trustsec_egress_matrix_cell (list, objects identified by matrix_name/source_sgt_name/destination_sgt_name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for trustsec egress matrix cell (module defaults merged with user defaults)
   defaults_trustsec_egress_matrix_cell = try(local.defaults.ise.trustsec.trustsec_egress_matrix_cell, {})
 
-  # Trustsec Egress Matrix Cell (with defaults)
+  # Trustsec egress matrix cell objects with defaults
   trustsec_egress_matrix_cell = [for item in try(local.ise.trustsec.trustsec_egress_matrix_cell, []) : merge(
-    local.defaults_trustsec_egress_matrix_cell, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_trustsec_egress_matrix_cell,
+    item
   )]
 }
 
-# Create trustsec egress matrix cell
 resource "ise_trustsec_egress_matrix_cell" "trustsec_egress_matrix_cell" {
-  for_each = { for item in try(local.trustsec_egress_matrix_cell, []) : item.name => item }
+  for_each = { for item in local.trustsec_egress_matrix_cell : format("%s/%s/%s", try(item.matrix_name, item.matrix_id, ""), try(item.source_sgt_name, item.source_sgt_id, ""), try(item.destination_sgt_name, item.destination_sgt_id, "")) => item }
 
-  # General attributes
-  description = try(each.value.description, null)
-  default_rule = try(each.value.default_rule, null)
+  description        = try(each.value.description, null)
+  default_rule       = try(each.value.default_rule, null)
   matrix_cell_status = try(each.value.matrix_cell_status, null)
-  sgacls = try(each.value.sgacls, null)
-  source_sgt_id = try(each.value.source_sgt_id, null)
-  destination_sgt_id = try(each.value.destination_sgt_id, null)
+  sgacls             = try(each.value.sgacls, null)
+  source_sgt_id      = try(each.value.source_sgt_id, null) != null ? each.value.source_sgt_id : try(each.value.source_sgt_name, null) != null ? local.trustsec_security_group_ids[each.value.source_sgt_name] : null
+  destination_sgt_id = try(each.value.destination_sgt_id, null) != null ? each.value.destination_sgt_id : try(each.value.destination_sgt_name, null) != null ? local.trustsec_security_group_ids[each.value.destination_sgt_name] : null
+  matrix_id          = try(each.value.matrix_id, null) != null ? each.value.matrix_id : try(each.value.matrix_name, null) != null ? local.trustsec_matrix_ids[each.value.matrix_name] : null
 }
+
 #
 # ==================================================================
-# TRUSTSEC IP TO SGT MAPPING 
+# TRUSTSEC EGRESS MATRIX CELL DEFAULT
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | description | String | False | Description |
+# | default_rule | String | False | Can be used only if sgacls not specified. Final Catch All Rule |
+# | matrix_cell_status | String | False | Matrix Cell Status |
+# | sgacls | Set | False | List of TrustSec Security Groups ACLs |
+#
+# YAML: ise.trustsec.trustsec_egress_matrix_cell_default (single object)
+#
+
+locals {
+  # Defaults for trustsec egress matrix cell default (module defaults merged with user defaults)
+  defaults_trustsec_egress_matrix_cell_default = try(local.defaults.ise.trustsec.trustsec_egress_matrix_cell_default, {})
+
+  # Trustsec egress matrix cell default objects with defaults
+  trustsec_egress_matrix_cell_default = [for item in try([local.ise.trustsec.trustsec_egress_matrix_cell_default], []) : merge(
+    local.defaults_trustsec_egress_matrix_cell_default,
+    item
+  )]
+}
+
+resource "ise_trustsec_egress_matrix_cell_default" "trustsec_egress_matrix_cell_default" {
+  count = length(local.trustsec_egress_matrix_cell_default)
+
+  description        = try(local.trustsec_egress_matrix_cell_default[count.index].description, null)
+  default_rule       = try(local.trustsec_egress_matrix_cell_default[count.index].default_rule, null)
+  matrix_cell_status = try(local.trustsec_egress_matrix_cell_default[count.index].matrix_cell_status, null)
+  sgacls             = try(local.trustsec_egress_matrix_cell_default[count.index].sgacls, null)
+}
+
+#
+# ==================================================================
+# TRUSTSEC EGRESS PUSH MATRIX
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | force | Bool | False | Set to true to re-trigger push on update. Will automatically reset to false after execution. |
+#
+# YAML: ise.trustsec.trustsec_egress_push_matrix (single object)
+#
+
+locals {
+  # Defaults for trustsec egress push matrix (module defaults merged with user defaults)
+  defaults_trustsec_egress_push_matrix = try(local.defaults.ise.trustsec.trustsec_egress_push_matrix, {})
+
+  # Trustsec egress push matrix objects with defaults
+  trustsec_egress_push_matrix = [for item in try([local.ise.trustsec.trustsec_egress_push_matrix], []) : merge(
+    local.defaults_trustsec_egress_push_matrix,
+    item
+  )]
+}
+
+resource "ise_trustsec_egress_push_matrix" "trustsec_egress_push_matrix" {
+  count = length(local.trustsec_egress_push_matrix)
+
+  force = try(local.trustsec_egress_push_matrix[count.index].force, null)
+}
+
+#
+# ==================================================================
+# TRUSTSEC IP TO SGT MAPPING
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -62,38 +300,39 @@ resource "ise_trustsec_egress_matrix_cell" "trustsec_egress_matrix_cell" {
 # | host_ip | String | False | Mandatory if `host_name` is empty |
 # | sgt | String | False | Trustsec Security Group ID. Mandatory unless `mapping_group` is set |
 # | mapping_group | String | False | IP to SGT Mapping Group ID. Mandatory unless `sgt` and `deploy_to` and `deploy_type` are set |
+# | sgt_name | String | False | Name of the referenced trustsec security group, alternative to `sgt` |
+# | mapping_group_name | String | False | Name of the referenced trustsec ip to sgt mapping group, alternative to `mapping_group` |
+#
+# YAML: ise.trustsec.trustsec_ip_to_sgt_mapping (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for trustsec ip to sgt mapping (module defaults merged with user defaults)
   defaults_trustsec_ip_to_sgt_mapping = try(local.defaults.ise.trustsec.trustsec_ip_to_sgt_mapping, {})
 
-  # Trustsec Ip To Sgt Mapping (with defaults)
+  # Trustsec ip to sgt mapping objects with defaults
   trustsec_ip_to_sgt_mapping = [for item in try(local.ise.trustsec.trustsec_ip_to_sgt_mapping, []) : merge(
-    local.defaults_trustsec_ip_to_sgt_mapping, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_trustsec_ip_to_sgt_mapping,
+    item
   )]
 }
 
-# Create trustsec ip to sgt mapping
 resource "ise_trustsec_ip_to_sgt_mapping" "trustsec_ip_to_sgt_mapping" {
-  for_each = { for item in try(local.trustsec_ip_to_sgt_mapping, []) : item.name => item }
+  for_each = { for item in local.trustsec_ip_to_sgt_mapping : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  deploy_to = try(each.value.deploy_to, null)
-  deploy_type = try(each.value.deploy_type, null)
-  host_name = try(each.value.host_name, null)
-  host_ip = try(each.value.host_ip, null)
-  sgt = try(each.value.sgt, null)
-  mapping_group = try(each.value.mapping_group, null)
+  name          = try(each.value.name, null)
+  description   = try(each.value.description, null)
+  deploy_to     = try(each.value.deploy_to, null)
+  deploy_type   = try(each.value.deploy_type, null)
+  host_name     = try(each.value.host_name, null)
+  host_ip       = try(each.value.host_ip, null)
+  sgt           = try(each.value.sgt, null) != null ? each.value.sgt : try(each.value.sgt_name, null) != null ? local.trustsec_security_group_ids[each.value.sgt_name] : null
+  mapping_group = try(each.value.mapping_group, null) != null ? each.value.mapping_group : try(each.value.mapping_group_name, null) != null ? local.trustsec_ip_to_sgt_mapping_group_ids[each.value.mapping_group_name] : null
 }
+
 #
 # ==================================================================
-# TRUSTSEC IP TO SGT MAPPING GROUP 
+# TRUSTSEC IP TO SGT MAPPING GROUP
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -103,121 +342,140 @@ resource "ise_trustsec_ip_to_sgt_mapping" "trustsec_ip_to_sgt_mapping" {
 # | deploy_to | String | False | Mandatory unless `deploy_type` is `ALL` |
 # | deploy_type | String | True | Deploy Type |
 # | sgt | String | True | Trustsec Security Group ID |
+# | sgt_name | String | False | Name of the referenced trustsec security group, alternative to `sgt` |
+#
+# YAML: ise.trustsec.trustsec_ip_to_sgt_mapping_group (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for trustsec ip to sgt mapping group (module defaults merged with user defaults)
   defaults_trustsec_ip_to_sgt_mapping_group = try(local.defaults.ise.trustsec.trustsec_ip_to_sgt_mapping_group, {})
 
-  # Trustsec Ip To Sgt Mapping Group (with defaults)
+  # Trustsec ip to sgt mapping group objects with defaults
   trustsec_ip_to_sgt_mapping_group = [for item in try(local.ise.trustsec.trustsec_ip_to_sgt_mapping_group, []) : merge(
-    local.defaults_trustsec_ip_to_sgt_mapping_group, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_trustsec_ip_to_sgt_mapping_group,
+    item
   )]
 }
 
-# Create trustsec ip to sgt mapping group
 resource "ise_trustsec_ip_to_sgt_mapping_group" "trustsec_ip_to_sgt_mapping_group" {
-  for_each = { for item in try(local.trustsec_ip_to_sgt_mapping_group, []) : item.name => item }
+  for_each = { for item in local.trustsec_ip_to_sgt_mapping_group : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
+  name        = try(each.value.name, null)
   description = try(each.value.description, null)
-  deploy_to = try(each.value.deploy_to, null)
+  deploy_to   = try(each.value.deploy_to, null)
   deploy_type = try(each.value.deploy_type, null)
-  sgt = try(each.value.sgt, null)
+  sgt         = try(each.value.sgt, null) != null ? each.value.sgt : try(each.value.sgt_name, null) != null ? local.trustsec_security_group_ids[each.value.sgt_name] : null
 }
+
+
+#
+# ------------------------------------------------------------------
+# TRUSTSEC IP TO SGT MAPPING GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to trustsec ip to sgt mapping group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  trustsec_ip_to_sgt_mapping_group_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.mapping_group_name, null) if try(v0.mapping_group, null) == null]],
+  ])))
+  trustsec_ip_to_sgt_mapping_group_managed_names   = [for item in local.trustsec_ip_to_sgt_mapping_group : item.name]
+  trustsec_ip_to_sgt_mapping_group_unmanaged_names = [for n in local.trustsec_ip_to_sgt_mapping_group_referenced_names : n if !contains(local.trustsec_ip_to_sgt_mapping_group_managed_names, n)]
+}
+
+data "ise_trustsec_ip_to_sgt_mapping_group" "trustsec_ip_to_sgt_mapping_group" {
+  for_each = toset(local.trustsec_ip_to_sgt_mapping_group_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  trustsec_ip_to_sgt_mapping_group_lookup_ids = { for k, v in data.ise_trustsec_ip_to_sgt_mapping_group.trustsec_ip_to_sgt_mapping_group : k => v.id }
+  trustsec_ip_to_sgt_mapping_group_ids = merge(
+    local.trustsec_ip_to_sgt_mapping_group_lookup_ids,
+    { for k, v in ise_trustsec_ip_to_sgt_mapping_group.trustsec_ip_to_sgt_mapping_group : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# TRUSTSEC SECURITY GROUP ACL 
+# TRUSTSEC MATRIX
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | name | String | True | The name of the security group ACL |
-# | description | String | False | Description |
-# | acl_content | String | True | Content of ACL |
-# | ip_version | String | False | IP Version |
-# | read_only | Bool | False | Read-only |
+# | name | String | True | The name of the TrustSec Matrix policy. Must be unique across all matrices. |
+# | description | String | False | Description of the TrustSec Matrix |
+# | defcon_level | String | False | DEFCON Level for the TrustSec Matrix |
+# | matrix_policy_type | String | False | Trustsec Matrix Policy Type |
+# | copy_policy_from | String | False | Policy UUID from which the TrustSec Policies needs to be copied. The default value is empty means it will create a new Matrix without any policies |
+#
+# YAML: ise.trustsec.trustsec_matrix (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_trustsec_security_group_acl = try(local.defaults.ise.trustsec.trustsec_security_group_acl, {})
+  # Defaults for trustsec matrix (module defaults merged with user defaults)
+  defaults_trustsec_matrix = try(local.defaults.ise.trustsec.trustsec_matrix, {})
 
-  # Trustsec Security Group Acl (with defaults)
-  trustsec_security_group_acl = [for item in try(local.ise.trustsec.trustsec_security_group_acl, []) : merge(
-    local.defaults_trustsec_security_group_acl, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+  # Trustsec matrix objects with defaults
+  trustsec_matrix = [for item in try(local.ise.trustsec.trustsec_matrix, []) : merge(
+    local.defaults_trustsec_matrix,
+    item
   )]
 }
 
-# Create trustsec security group acl
-resource "ise_trustsec_security_group_acl" "trustsec_security_group_acl" {
-  for_each = { for item in try(local.trustsec_security_group_acl, []) : item.name => item }
+resource "ise_trustsec_matrix" "trustsec_matrix" {
+  for_each = { for item in local.trustsec_matrix : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  acl_content = try(each.value.acl_content, null)
-  ip_version = try(each.value.ip_version, null)
-  read_only = try(each.value.read_only, null)
-  
+  name               = try(each.value.name, null)
+  description        = try(each.value.description, null)
+  defcon_level       = try(each.value.defcon_level, null)
+  matrix_policy_type = try(each.value.matrix_policy_type, null)
+  copy_policy_from   = try(each.value.copy_policy_from, null)
+
   lifecycle {
-    ignore_changes = [read_only]
+    ignore_changes = [copy_policy_from]
   }
 }
+
+
 #
-# ==================================================================
-# SXP DOMAIN FILTER 
-# ==================================================================
+# ------------------------------------------------------------------
+# TRUSTSEC MATRIX REFERENCES
+# ------------------------------------------------------------------
 #
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | False | Resource name |
-# | description | String | False | Description |
-# | subnet | String | False | Subnet for filter policy (hostname is not supported). At least one of subnet or sgt or vn should be defined |
-# | sgt | String | False | SGT name or ID. At least one of subnet or sgt or vn should be defined |
-# | vn | String | False | Virtual Network. At least one of subnet or sgt or vn should be defined |
-# | domains | String | True | List of SXP Domains, separated with comma |
+# Other objects can refer to trustsec matrix objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_sxp_domain_filter = try(local.defaults.ise.trustsec.sxp_domain_filter, {})
-
-  # Sxp Domain Filter (with defaults)
-  sxp_domain_filter = [for item in try(local.ise.trustsec.sxp_domain_filter, []) : merge(
-    local.defaults_sxp_domain_filter, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
+  trustsec_matrix_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_egress_matrix_cell : [for v0 in [item] : try(v0.matrix_name, null) if try(v0.matrix_id, null) == null]],
+  ])))
+  trustsec_matrix_managed_names   = [for item in local.trustsec_matrix : item.name]
+  trustsec_matrix_unmanaged_names = [for n in local.trustsec_matrix_referenced_names : n if !contains(local.trustsec_matrix_managed_names, n)]
 }
 
-# Create sxp domain filter
-resource "ise_sxp_domain_filter" "sxp_domain_filter" {
-  for_each = { for item in try(local.sxp_domain_filter, []) : item.name => item }
+data "ise_trustsec_matrix" "trustsec_matrix" {
+  for_each = toset(local.trustsec_matrix_unmanaged_names)
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  subnet = try(each.value.subnet, null)
-  sgt = try(each.value.sgt, null)
-  vn = try(each.value.vn, null)
-  domains = try(each.value.domains, null)
-  
-  lifecycle {
-    ignore_changes = [sgt]
-  }
+  name = each.key
 }
+
+locals {
+  trustsec_matrix_lookup_ids = { for k, v in data.ise_trustsec_matrix.trustsec_matrix : k => v.id }
+  trustsec_matrix_ids = merge(
+    local.trustsec_matrix_lookup_ids,
+    { for k, v in ise_trustsec_matrix.trustsec_matrix : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# TRUSTSEC SECURITY GROUP 
+# TRUSTSEC SECURITY GROUP
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -228,68 +486,139 @@ resource "ise_sxp_domain_filter" "sxp_domain_filter" {
 # | propogate_to_apic | Bool | False | Propagate to APIC (ACI) |
 # | is_read_only | Bool | False | Read-only |
 #
+# YAML: ise.trustsec.trustsec_security_group (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for trustsec security group (module defaults merged with user defaults)
   defaults_trustsec_security_group = try(local.defaults.ise.trustsec.trustsec_security_group, {})
 
-  # Trustsec Security Group (with defaults)
+  # Trustsec security group objects with defaults
   trustsec_security_group = [for item in try(local.ise.trustsec.trustsec_security_group, []) : merge(
-    local.defaults_trustsec_security_group, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_trustsec_security_group,
+    item
   )]
 }
 
-# Create trustsec security group
 resource "ise_trustsec_security_group" "trustsec_security_group" {
-  for_each = { for item in try(local.trustsec_security_group, []) : item.name => item }
+  for_each = { for item in local.trustsec_security_group : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  value = try(each.value.value, null)
+  name              = try(each.value.name, null)
+  description       = try(each.value.description, null)
+  value             = try(each.value.value, null)
   propogate_to_apic = try(each.value.propogate_to_apic, null)
-  is_read_only = try(each.value.is_read_only, null)
-  
+  is_read_only      = try(each.value.is_read_only, null)
+
   lifecycle {
     ignore_changes = [is_read_only]
   }
 }
+
+
+#
+# ------------------------------------------------------------------
+# TRUSTSEC SECURITY GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to trustsec security group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  trustsec_security_group_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_egress_matrix_cell : [for v0 in [item] : try(v0.source_sgt_name, null) if try(v0.source_sgt_id, null) == null]],
+    [for item in local.trustsec_egress_matrix_cell : [for v0 in [item] : try(v0.destination_sgt_name, null) if try(v0.destination_sgt_id, null) == null]],
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.sgt_name, null) if try(v0.sgt, null) == null]],
+    [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.sgt_name, null) if try(v0.sgt, null) == null]],
+  ])))
+  trustsec_security_group_managed_names   = [for item in local.trustsec_security_group : item.name]
+  trustsec_security_group_unmanaged_names = [for n in local.trustsec_security_group_referenced_names : n if !contains(local.trustsec_security_group_managed_names, n)]
+}
+
+data "ise_trustsec_security_group" "trustsec_security_group" {
+  for_each = toset(local.trustsec_security_group_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  trustsec_security_group_lookup_ids = { for k, v in data.ise_trustsec_security_group.trustsec_security_group : k => v.id }
+  trustsec_security_group_ids = merge(
+    local.trustsec_security_group_lookup_ids,
+    { for k, v in ise_trustsec_security_group.trustsec_security_group : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# TRUSTSEC EGRESS MATRIX CELL DEFAULT 
+# TRUSTSEC SECURITY GROUP ACL
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
+# | name | String | True | The name of the security group ACL |
 # | description | String | False | Description |
-# | default_rule | String | False | Can be used only if sgacls not specified. Final Catch All Rule |
-# | matrix_cell_status | String | False | Matrix Cell Status |
-# | sgacls | Set | False | List of TrustSec Security Groups ACLs |
+# | acl_content | String | True | Content of ACL |
+# | ip_version | String | False | IP Version |
+# | read_only | Bool | False | Read-only |
+#
+# YAML: ise.trustsec.trustsec_security_group_acl (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_trustsec_egress_matrix_cell_default = try(local.defaults.ise.trustsec.trustsec_egress_matrix_cell_default, {})
+  # Defaults for trustsec security group acl (module defaults merged with user defaults)
+  defaults_trustsec_security_group_acl = try(local.defaults.ise.trustsec.trustsec_security_group_acl, {})
 
-  # Trustsec Egress Matrix Cell Default (with defaults)
-  trustsec_egress_matrix_cell_default = [for item in try(local.ise.trustsec.trustsec_egress_matrix_cell_default, []) : merge(
-    local.defaults_trustsec_egress_matrix_cell_default, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+  # Trustsec security group acl objects with defaults
+  trustsec_security_group_acl = [for item in try(local.ise.trustsec.trustsec_security_group_acl, []) : merge(
+    local.defaults_trustsec_security_group_acl,
+    item
   )]
 }
 
-# Create trustsec egress matrix cell default
-resource "ise_trustsec_egress_matrix_cell_default" "trustsec_egress_matrix_cell_default" {
-  for_each = { for item in try(local.trustsec_egress_matrix_cell_default, []) : item.name => item }
+resource "ise_trustsec_security_group_acl" "trustsec_security_group_acl" {
+  for_each = { for item in local.trustsec_security_group_acl : item.name => item }
 
-  # General attributes
+  name        = try(each.value.name, null)
   description = try(each.value.description, null)
-  default_rule = try(each.value.default_rule, null)
-  matrix_cell_status = try(each.value.matrix_cell_status, null)
-  sgacls = try(each.value.sgacls, null)
+  acl_content = try(each.value.acl_content, null)
+  ip_version  = try(each.value.ip_version, null)
+  read_only   = try(each.value.read_only, null)
+
+  lifecycle {
+    ignore_changes = [read_only]
+  }
+}
+
+#
+# ==================================================================
+# TRUSTSEC WORK PROCESS SETTINGS
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | matrix_mode | String | False | TrustSec Matrix Mode |
+# | use_defcons | Bool | False | Whether to use DEFCON levels in the TrustSec Matrix |
+# | enable_approval_workflow | Bool | False | Whether to enable approval workflow for TrustSec Matrix changes |
+#
+# YAML: ise.trustsec.trustsec_work_process_settings (single object)
+#
+
+locals {
+  # Defaults for trustsec work process settings (module defaults merged with user defaults)
+  defaults_trustsec_work_process_settings = try(local.defaults.ise.trustsec.trustsec_work_process_settings, {})
+
+  # Trustsec work process settings objects with defaults
+  trustsec_work_process_settings = [for item in try([local.ise.trustsec.trustsec_work_process_settings], []) : merge(
+    local.defaults_trustsec_work_process_settings,
+    item
+  )]
+}
+
+resource "ise_trustsec_work_process_settings" "trustsec_work_process_settings" {
+  count = length(local.trustsec_work_process_settings)
+
+  matrix_mode              = try(local.trustsec_work_process_settings[count.index].matrix_mode, null)
+  use_defcons              = try(local.trustsec_work_process_settings[count.index].use_defcons, null)
+  enable_approval_workflow = try(local.trustsec_work_process_settings[count.index].enable_approval_workflow, null)
 }

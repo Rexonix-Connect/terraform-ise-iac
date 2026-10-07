@@ -3,18 +3,23 @@
 ISE Infrastructure as Code Module Generator
 
 This script generates Terraform HCL configurations for the terraform-ise-iac module
-based on the YAML definitions from the terraform-provider-ise repository.
+based on the YAML definitions from the terraform-provider-ise repository and the
+module-specific customizations in gen/overrides.yaml.
 """
 
+import copy
 import os
+import shutil
 import yaml
+from dataclasses import dataclass, field
 from pathlib import Path
 import re
 import subprocess
+import click
 from jinja2 import Environment, FileSystemLoader, StrictUndefined
 import logging
 from rich.logging import RichHandler
-from typing import Any, Dict, List, Set, Optional
+from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 # Paths
 SCRIPT_DIR: Path = Path(os.path.dirname(os.path.realpath(__file__)))
@@ -34,7 +39,10 @@ DEFAULT_PROVIDER_SOURCE_TYPE: str = "git"
 DEFAULT_PROVIDER_SOURCE_PATH: str = (
     "https://github.com/CiscoDevNet/terraform-provider-ise"
 )
-DEFAULT_PROVIDER_GIT_BRANCH: str = "main"
+# Provider release the module is generated for (git tag v<version>)
+DEFAULT_PROVIDER_VERSION: str = "0.5.0"
+# Module customizations on top of the provider definitions
+OVERRIDES_FILE: Path = SCRIPT_DIR / "overrides.yaml"
 # File generation
 TEMPLATES_DIR: Path = SCRIPT_DIR / "templates"
 MODULE_DIR: Path = SCRIPT_DIR / ".."
@@ -44,6 +52,9 @@ EXAMPLE_DEFAULTS_DATA_DIR: Path = EXAMPLES_DIR / "auto-generated" / "user-defaul
 EXAMPLE_MODEL_DATA_DIR: Path = EXAMPLES_DIR / "auto-generated" / "model-data"
 DEFAULTS_FILENAME: str = "ise_defaults.yaml"
 DEFAULT_RESOURCE_TEMPLATE: str = "resource_default.tf.j2"
+REFERENCES_TEMPLATE: str = "references.tf.j2"
+RANKS_TEMPLATE: str = "ranks.tf.j2"
+VERSIONS_TEMPLATE: str = "versions.tf.j2"
 GENERATE_FILE_BANNER: str = """#
 # ################################################################################
 #
@@ -60,6 +71,24 @@ logging.basicConfig(
     level=logging.INFO, format="%(message)s", datefmt="[%X]", handlers=[RichHandler()]
 )
 logger = logging.getLogger("ise-nac-generator")
+
+
+class DefinitionLoader(yaml.SafeLoader):
+    """YAML loader reading booleans like the provider generator (YAML 1.2).
+
+    PyYAML follows YAML 1.1 where e.g. OFF, on, yes are booleans; the provider
+    definitions use them as strings (example: OFF)."""
+
+
+DefinitionLoader.yaml_implicit_resolvers = {
+    first: [(tag, regexp) for tag, regexp in resolvers if tag != "tag:yaml.org,2002:bool"]
+    for first, resolvers in yaml.SafeLoader.yaml_implicit_resolvers.items()
+}
+DefinitionLoader.add_implicit_resolver(
+    "tag:yaml.org,2002:bool",
+    re.compile(r"^(?:true|True|TRUE|false|False|FALSE)$"),
+    list("tTfF"),
+)
 
 
 def snake_case(s: str) -> str:
@@ -81,20 +110,25 @@ def ensure_name_in_attribute(attr: Dict[str, Any]) -> Dict[str, Any]:
 def is_hardcoded_attribute(attr: Dict[str, Any]) -> bool:
     """Check if the attribute is hardcoded based on key presence."""
     if "value" in attr:
-        logger.warning(f"Attribute is hard-coded thus ignored: {attr}")
+        logger.debug(f"Attribute is hard-coded thus ignored: {attr}")
         return True
     return False
 
 
 def is_ignore_changes_attribute(attr: Dict[str, Any]) -> bool:
-    """Check if attribute should be included in ignore_changes lifecycle option."""
+    """Check if attribute should be included in ignore_changes lifecycle option.
+
+    Secrets are never ignored: ISE does not return them, so the YAML value is
+    their only source and changing it rotates the secret."""
+    if is_sensitive_attribute(attr):
+        return False
     if "write_only" in attr and attr["write_only"]:
-        logger.info(
+        logger.debug(
             f"Attribute {attr['name']} is write-only thus marked for ignore_changes."
         )
         return True
     if "write_changes_only" in attr and attr["write_changes_only"]:
-        logger.info(
+        logger.debug(
             f"Attribute {attr['name']} is write_changes_only thus marked for ignore_changes."
         )
         return True
@@ -112,7 +146,7 @@ def is_named_attribute(attr: Dict[str, Any]) -> bool:
 def is_sensitive_attribute(attr: Dict[str, Any]) -> bool:
     """Check if the attribute is sensitive based on its name."""
     if SENSITIVE_ATTRIBUTES_REGEXP.match(attr["name"]) is not None:
-        logger.info(f"Attribute {attr['name']} is considered sensitive.")
+        logger.debug(f"Attribute {attr['name']} is considered sensitive.")
         return True
     return False
 
@@ -152,25 +186,37 @@ def get_provider_code(
     provider_dir: Path,
     source_type: str = DEFAULT_PROVIDER_SOURCE_TYPE,
     source_path: str = DEFAULT_PROVIDER_SOURCE_PATH,
-    git_branch: str = DEFAULT_PROVIDER_GIT_BRANCH,
-) -> None:
-    """Retrieve the provider code from remote git or local repository"""
+    git_ref: str = f"v{DEFAULT_PROVIDER_VERSION}",
+) -> Path:
+    """Retrieve the provider code from remote git or local repository.
+
+    Returns the directory containing the provider source code."""
     try:
         if source_type == "git":
             if provider_dir.exists():
-                subprocess.run(["rm", "-rf", str(provider_dir)], check=True)
+                shutil.rmtree(provider_dir)
             subprocess.run(
-                ["git", "clone", "-b", git_branch, source_path, str(provider_dir)],
+                [
+                    "git",
+                    "clone",
+                    "--quiet",
+                    "--depth",
+                    "1",
+                    "--branch",
+                    git_ref,
+                    source_path,
+                    str(provider_dir),
+                ],
                 check=True,
             )
+            return provider_dir
         elif source_type == "local":
-            if provider_dir.exists():
-                for item in provider_dir.iterdir():
-                    if item.is_dir():
-                        subprocess.run(["rm", "-rf", str(item)], check=True)
-                    else:
-                        item.unlink()
-            subprocess.run(["cp", "-r", source_path, str(provider_dir)], check=True)
+            local_dir = Path(source_path).expanduser().resolve()
+            if not (local_dir / "gen" / "definitions").is_dir():
+                raise ValueError(
+                    f"{local_dir} does not look like a terraform-provider-ise checkout"
+                )
+            return local_dir
         else:
             raise ValueError("Unsupported source type. Use 'git' or 'local'.")
     except subprocess.CalledProcessError as e:
@@ -186,10 +232,11 @@ def load_yaml_definitions(provider_dir: Path) -> Dict[str, Any]:
     definitions_dir: Path = provider_dir / "gen" / "definitions"
     definitions: Dict[str, Any] = {}
     try:
-        for yaml_file in definitions_dir.glob("*.yaml"):
+        # sorted for a stable order of the generated files
+        for yaml_file in sorted(definitions_dir.glob("*.yaml")):
             try:
                 with yaml_file.open("r") as f:
-                    definition = yaml.safe_load(f)
+                    definition = yaml.load(f, Loader=DefinitionLoader)
                     if definition:
                         definitions[yaml_file.stem] = definition
                     else:
@@ -202,39 +249,477 @@ def load_yaml_definitions(provider_dir: Path) -> Dict[str, Any]:
     return definitions
 
 
+def load_overrides(overrides_file: Path) -> Dict[str, Any]:
+    """Load module customizations applied on top of the provider definitions"""
+    with overrides_file.open("r") as f:
+        overrides = yaml.safe_load(f) or {}
+    overrides.setdefault("resources", {})
+    return overrides
+
+
 def get_all_attribute_keys_for_definitions(definitions: Dict[str, Any]) -> Set[str]:
     """Retrieve all attribute keys from definitions."""
     all_attribute_keys: Set[str] = set(["name"])
-    for definition_name, definition in definitions.items():
-        for attr in definition.get("attributes", []):
-            for key in attr.keys():
-                all_attribute_keys.add(key)
+
+    def collect(attrs: List[Dict[str, Any]]) -> None:
+        for attr in attrs:
+            all_attribute_keys.update(attr.keys())
+            collect(attr.get("attributes", []))
+
+    for definition in definitions.values():
+        collect(definition.get("attributes", []))
     return all_attribute_keys
 
 
-def process_resource_definitions(definitions: Dict[str, Any]) -> Dict[str, Any]:
-    """Process resource definitions for further use"""
-    all_attribute_keys = get_all_attribute_keys_for_definitions(definitions)
-    # print(all_attribute_keys) # TODO: remove
-    no_resources = []
-    for definition_name, definition in definitions.items():
-        logger.info(f"Processing {definition_name}...")
-        if definition.get("no_resource", False):  # TODO: review
-            logger.warning(f"No resource defined for {definition_name}.")
-            no_resources.append(definition_name)
-            continue
-        definition["processed_attributes"] = process_attributes(
-            definition.get("attributes", []), all_attribute_keys
+# ##############################################################################
+# Module model
+# ##############################################################################
+
+
+@dataclass
+class Reference:
+    """Attribute holding the ID of another ISE object, settable by name in YAML."""
+
+    attr: str  # provider attribute holding the ID(s)
+    lists: Tuple[str, ...]  # nested list attributes leading to attr, () for top level
+    target: str  # provider definition name of the referenced object
+    name: str  # YAML key holding the referenced name(s)
+    when: Dict[str, str] = field(default_factory=dict)
+    recursive: bool = False
+    comma_list: bool = False
+    name_lookup: bool = True  # unmanaged names are looked up in ISE
+
+    def matches(self, lists: Tuple[str, ...]) -> bool:
+        """Check if the reference applies to items of the given nested list path."""
+        if not self.recursive or not self.lists:
+            return lists == self.lists
+        n = len(self.lists)
+        return (
+            len(lists) >= n
+            and len(lists) % n == 0
+            and all(lists[i : i + n] == self.lists for i in range(0, len(lists), n))
         )
-        definition["ignore_changes_attributes"] = [
-            attr["name"]
-            for attr in definition["processed_attributes"]
-            if attr["ignore_changes"]
+
+
+@dataclass
+class Resource:
+    """Module resource generated from a provider definition."""
+
+    name: str
+    category: str
+    definition: Dict[str, Any]
+    attributes: List[Dict[str, Any]]
+    key: List[str]
+    singleton: bool = False
+    references: List[Reference] = field(default_factory=list)
+    ranks: Optional[Dict[str, Any]] = None
+    rank_attribute: Optional[Dict[str, Any]] = None  # set in YAML, applied in bulk
+    tiers: int = 1  # more than 1 if objects can refer to objects of the same type
+
+    @property
+    def self_references(self) -> List[Reference]:
+        return [r for r in self.references if r.target == self.name]
+
+
+def get_category(definition: Dict[str, Any]) -> str:
+    """Module file / YAML section an ISE object belongs to"""
+    return definition.get("doc_category", "Other").lower().replace(" ", "_")
+
+
+def has_name_data_source(definition: Dict[str, Any]) -> bool:
+    """Check if the provider offers a data source that can look an object up by name"""
+    return definition.get("data_source_name_query", False) and not definition.get(
+        "no_data_source", False
+    )
+
+
+def parse_references(
+    resource_name: str, references: Dict[str, Any]
+) -> List[Reference]:
+    """Parse the references section of a resource override"""
+    parsed = []
+    for path, spec in (references or {}).items():
+        *lists, attr = path.split(".")
+        fmt = spec.get("format", "single")
+        if fmt not in ("single", "comma_list"):
+            raise ValueError(f"{resource_name}.{path}: unsupported format {fmt}")
+        parsed.append(
+            Reference(
+                attr=attr,
+                lists=tuple(lists),
+                target=spec["target"],
+                name=spec["name"],
+                when=dict(spec.get("when", {})),
+                recursive=spec.get("recursive", False),
+                comma_list=fmt == "comma_list",
+            )
+        )
+    return parsed
+
+
+def walk_attributes(
+    attrs: List[Dict[str, Any]], lists: Tuple[str, ...] = ()
+) -> Iterator[Tuple[Tuple[str, ...], Dict[str, Any]]]:
+    """Yield (nested list path, attribute) for all attributes in the tree"""
+    for attr in attrs:
+        yield lists, attr
+        if attr["nested_attributes"]:
+            yield from walk_attributes(attr["nested_attributes"], lists + (attr["name"],))
+
+
+def reference_paths(resource: Resource, ref: Reference) -> List[Tuple[str, ...]]:
+    """All nested list paths of a resource the reference applies to"""
+    return [
+        lists
+        for lists, attr in walk_attributes(resource.attributes)
+        if attr["name"] == ref.attr and ref.matches(lists)
+    ]
+
+
+def build_resources(
+    definitions: Dict[str, Any], overrides: Dict[str, Any]
+) -> Dict[str, Resource]:
+    """Combine provider definitions and module overrides into module resources"""
+    all_attribute_keys = get_all_attribute_keys_for_definitions(definitions)
+    resource_overrides: Dict[str, Any] = overrides["resources"]
+
+    for name in resource_overrides:
+        if name not in definitions:
+            raise ValueError(f"overrides.yaml: unknown resource {name}")
+
+    # Bulk rank resources are generated from the ranked resources
+    rank_resources = {
+        o["ranks"]["resource"] for o in resource_overrides.values() if "ranks" in o
+    }
+
+    resources: Dict[str, Resource] = {}
+    for definition_name, definition in definitions.items():
+        override = resource_overrides.get(definition_name, {})
+        if definition.get("no_resource", False):
+            logger.info(f"Skipping {definition_name}: provider has no resource.")
+            continue
+        if override.get("skip", False) or definition_name in rank_resources:
+            logger.info(f"Skipping {definition_name}: excluded in overrides.yaml.")
+            continue
+
+        attributes = process_attributes(
+            copy.deepcopy(definition.get("attributes", [])), all_attribute_keys
+        )
+        exclude = set(override.get("exclude", []))
+        rank_attribute = None
+        if "ranks" in override:
+            rank_attribute = next(a for a in attributes if a["name"] == "rank")
+            exclude.add("rank")
+        attributes = [a for a in attributes if a["name"] not in exclude]
+
+        singleton = override.get("singleton", False)
+        key = override.get("key", [])
+        if not singleton and not key:
+            if not any(a["name"] == "name" for a in attributes):
+                raise ValueError(
+                    f"{definition_name} has no name attribute, "
+                    "set key or singleton in overrides.yaml"
+                )
+            key = ["name"]
+
+        resource = Resource(
+            name=definition_name,
+            category=get_category(definition),
+            definition=definition,
+            attributes=attributes,
+            key=key,
+            singleton=singleton,
+            references=parse_references(
+                definition_name, override.get("references", {})
+            ),
+            ranks=override.get("ranks"),
+            rank_attribute=rank_attribute,
+        )
+        for ref in resource.references:
+            if not reference_paths(resource, ref):
+                raise ValueError(
+                    f"{definition_name}: reference {'.'.join(ref.lists + (ref.attr,))} "
+                    "does not match any attribute"
+                )
+        if resource.self_references:
+            if resource.key != ["name"]:
+                raise ValueError(
+                    f"{definition_name}: self references need key [name]"
+                )
+            resource.tiers = overrides.get("self_reference_tiers", 4)
+        resources[definition_name] = resource
+
+    # Validate reference targets
+    for resource in resources.values():
+        for ref in resource.references:
+            if ref.target not in definitions:
+                raise ValueError(f"{resource.name}: unknown target {ref.target}")
+            target = resources.get(ref.target)
+            if target is not None and (target.singleton or target.key != ["name"]):
+                raise ValueError(
+                    f"{resource.name}: target {ref.target} must be keyed by name"
+                )
+            ref.name_lookup = has_name_data_source(definitions[ref.target])
+            if target is None and not ref.name_lookup:
+                raise ValueError(
+                    f"{resource.name}: target {ref.target} is neither managed by "
+                    "the module nor available as data source"
+                )
+        if resource.ranks and resource.tiers > 1:
+            raise ValueError(f"{resource.name}: ranks with self references")
+    return resources
+
+
+# ##############################################################################
+# HCL expressions
+# ##############################################################################
+
+
+def ids_local(target: str, consumer: Resource, tier: int) -> str:
+    """Local value mapping names of the target objects to IDs"""
+    if consumer.name == target and consumer.tiers > 1:
+        # objects in a tier can only refer to objects in lower tiers
+        return f"local.{target}_ids_tier{tier}"
+    return f"local.{target}_ids"
+
+
+def when_condition(ref: Reference, src: str) -> str:
+    """HCL condition under which a reference is resolved by name"""
+    conditions = [f"try({src}.{ref.attr}, null) == null"]
+    conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
+    return " && ".join(conditions)
+
+
+def reference_expr(ref: Reference, src: str, ids: str) -> str:
+    """HCL expression resolving a reference: the ID if given, else the ID of the name"""
+    id_value = f"{src}.{ref.attr}"
+    name_value = f"{src}.{ref.name}"
+    conditions = [f"try({name_value}, null) != null"]
+    conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
+    if ref.comma_list:
+        resolved = f'join(",", sort([for n in {name_value} : {ids}[n]]))'
+    elif not ref.name_lookup:
+        # unmanaged names fail the precondition of the target's references
+        resolved = f"lookup({ids}, {name_value}, null)"
+    else:
+        resolved = f"{ids}[{name_value}]"
+    return (
+        f"try({id_value}, null) != null ? {id_value} : "
+        f"{' && '.join(conditions)} ? {resolved} : null"
+    )
+
+
+def referenced_names_expr(ref: Reference, root: str, lists: Tuple[str, ...]) -> str:
+    """HCL expression listing the names referenced below one object (root)"""
+    variables = [root] + [f"v{i + 1}" for i in range(len(lists))]
+    leaf = variables[-1] if lists else "v0"
+    value = (
+        f"try({leaf}.{ref.name}, [])" if ref.comma_list else f"try({leaf}.{ref.name}, null)"
+    )
+    expr = f"{value} if {when_condition(ref, leaf)}"
+    if not lists:
+        return f"[for v0 in [{root}] : {expr}]"
+    # one loop per nested list, innermost first
+    for i in range(len(lists), 0, -1):
+        expr = f"[for {variables[i]} in try({variables[i - 1]}.{lists[i - 1]}, []) : {expr}]"
+    return expr
+
+
+def attribute_expr(
+    attr: Dict[str, Any],
+    src: str,
+    lists: Tuple[str, ...],
+    resource: Resource,
+    tier: int,
+    indent: int,
+) -> str:
+    """HCL expression for a resource attribute read from the YAML object src"""
+    ref = next(
+        (
+            r
+            for r in resource.references
+            if r.attr == attr["name"] and r.matches(lists)
+        ),
+        None,
+    )
+    if ref is not None:
+        expr = reference_expr(ref, src, ids_local(ref.target, resource, tier))
+    elif attr["nested_attributes"]:
+        var = f"i{len(lists) + 1}"
+        pad = "  " * (indent + 1)
+        body = "\n".join(
+            f"{pad}{nested['name']} = "
+            + attribute_expr(
+                nested, var, lists + (attr["name"],), resource, tier, indent + 1
+            )
+            for nested in attr["nested_attributes"]
+        )
+        value = f"{src}.{attr['name']}"
+        return (
+            f"try({value}, null) == null ? null : [for {var} in {value} : {{\n"
+            f"{body}\n{'  ' * indent}}}]"
+        )
+    else:
+        expr = f"try({src}.{attr['name']}, null)"
+    if attr["sensitive"]:
+        expr = f"sensitive({expr})"
+    return expr
+
+
+def key_expr(resource: Resource, item: str) -> str:
+    """HCL expression for the key of an object in the resource for_each map"""
+    parts = []
+    for key in resource.key:
+        ref = next((r for r in resource.references if r.name == key and not r.lists), None)
+        if ref is not None:
+            # objects can refer by ID instead of name
+            parts.append(f'try({item}.{key}, {item}.{ref.attr}, "")')
+        else:
+            parts.append(f"{item}.{key}")
+    if len(parts) == 1:
+        return parts[0]
+    return f'format("{"/".join(["%s"] * len(parts))}", {", ".join(parts)})'
+
+
+# ##############################################################################
+# Rendering
+# ##############################################################################
+
+
+def get_jinja_environment() -> Environment:
+    """Jinja environment for module templates"""
+    return Environment(
+        loader=FileSystemLoader(TEMPLATES_DIR),
+        trim_blocks=True,
+        lstrip_blocks=True,
+        keep_trailing_newline=True,
+        undefined=StrictUndefined,
+    )
+
+
+def documentation_rows(resource: Resource) -> List[Dict[str, Any]]:
+    """Rows of the attribute table in the generated resource header"""
+    rows = [
+        {
+            "name": attr["name"],
+            "type": attr["type"],
+            "mandatory": attr.get("mandatory", False),
+            "description": attr.get("description", ""),
+        }
+        for attr in resource.attributes
+    ]
+    if resource.rank_attribute:
+        rows.append(
+            {
+                "name": "rank",
+                "type": "Int64",
+                "mandatory": False,
+                "description": f"{resource.rank_attribute.get('description', 'Rank').rstrip('. ')}, "
+                f"applied through `ise_{resource.ranks['resource']}`",
+            }
+        )
+    seen = set()
+    for ref in resource.references:
+        name = ".".join(ref.lists + (ref.name,))
+        if name in seen or (not ref.lists and ref.name in {r["name"] for r in rows}):
+            continue
+        seen.add(name)
+        rows.append(
+            {
+                "name": name,
+                "type": "List" if ref.comma_list else "String",
+                "mandatory": False,
+                "description": (
+                    f"Name{'s' if ref.comma_list else ''} of the referenced "
+                    f"{ref.target.replace('_', ' ')}, alternative to `{ref.attr}`"
+                    + "".join(f" (if `{k}` is `{v}`)" for k, v in ref.when.items())
+                ),
+            }
+        )
+    return rows
+
+
+def render_resource(resource: Resource, env: Environment) -> str:
+    """Render module code for one resource"""
+    src = f"local.{resource.name}[count.index]" if resource.singleton else "each.value"
+    tiers = []
+    for tier in range(resource.tiers):
+        attributes = [
+            {
+                "name": attr["name"],
+                "expr": attribute_expr(attr, src, (), resource, tier, 1),
+            }
+            for attr in resource.attributes
         ]
-    # remove no_resources # TODO: review
-    for res in no_resources:
-        del definitions[res]
-    return definitions
+        tiers.append(
+            {
+                "resource_name": resource.name if tier == 0 else f"{resource.name}_tier{tier}",
+                "tier": tier,
+                "attributes": attributes,
+            }
+        )
+    return env.get_template(DEFAULT_RESOURCE_TEMPLATE).render(
+        resource=resource,
+        rows=documentation_rows(resource),
+        nested_attributes=[a["name"] for a in resource.attributes if a["nested_attributes"]],
+        ignore_changes=[a["name"] for a in resource.attributes if a["ignore_changes"]],
+        key=key_expr(resource, "item"),
+        tiers=tiers,
+        self_reference_names=[
+            referenced_names_expr(ref, "item", lists)
+            for ref in resource.self_references
+            for lists in reference_paths(resource, ref)
+        ],
+    )
+
+
+def render_references(
+    target: str,
+    definitions: Dict[str, Any],
+    resources: Dict[str, Resource],
+    env: Environment,
+) -> str:
+    """Render name to ID lookup for a referenced object type"""
+    referenced_names = []
+    for resource in resources.values():
+        for ref in resource.references:
+            if ref.target != target:
+                continue
+            for lists in reference_paths(resource, ref):
+                referenced_names.append(
+                    f"[for item in local.{resource.name} : "
+                    f"{referenced_names_expr(ref, 'item', lists)}]"
+                )
+    managed = resources.get(target)
+    return env.get_template(REFERENCES_TEMPLATE).render(
+        target=target,
+        managed=managed,
+        tiers=managed.tiers if managed else 0,
+        data_source=has_name_data_source(definitions[target]),
+        referenced_names=referenced_names,
+    )
+
+
+def render_ranks(resource: Resource, env: Environment) -> str:
+    """Render bulk rank update for a ranked resource"""
+    ranks = resource.ranks
+    group_ref = None
+    if "group_by" in ranks:
+        group_ref = next(r for r in resource.references if r.attr == ranks["group_by"])
+    return env.get_template(RANKS_TEMPLATE).render(
+        resource=resource,
+        ranks=ranks,
+        group_ref=group_ref,
+        group_key=(
+            f"try(item.{group_ref.name}, item.{group_ref.attr})" if group_ref else None
+        ),
+        group_value=(
+            reference_expr(group_ref, "each.value[0]", ids_local(group_ref.target, resource, 0))
+            if group_ref
+            else None
+        ),
+        key=key_expr(resource, "item"),
+    )
 
 
 def generate_file(
@@ -253,132 +738,177 @@ def generate_file(
                 f.write(output_text)
             elif output_yaml:
                 yaml.dump(output_yaml, f)
-        logger.info(f"Generated {output_filename}")
+        logger.info(f"Generated {output_filename.resolve().relative_to(MODULE_DIR.resolve())}")
     except Exception as e:
         logger.error(f"Failed to write {output_filename}: {e}")
 
 
-def generate_module_files(definitions: Dict[str, Any]) -> None:
+def remove_generated_files() -> None:
+    """Remove previously generated files so that removed resources disappear"""
+    for tf_file in MODULE_DIR.glob("*.tf"):
+        if tf_file.read_text().startswith(GENERATE_FILE_BANNER):
+            tf_file.unlink()
+    for directory in (EXAMPLE_MODEL_DATA_DIR, EXAMPLE_DEFAULTS_DATA_DIR, DEFAULTS_DIR):
+        if directory.exists():
+            shutil.rmtree(directory)
+
+
+def generate_module_files(
+    definitions: Dict[str, Any], resources: Dict[str, Resource]
+) -> None:
     """Generate module files based on definitions"""
-    # Group definitions by category
-    category_resources = {}
-    for resource_name, definition in definitions.items():
-        category = definition.get("doc_category", "Other").lower().replace(" ", "_")
-        if category not in category_resources:
-            category_resources[category] = []
+    env = get_jinja_environment()
 
-        category_resources[category].append(
-            {"name": resource_name, "definition": definition}
-        )
+    # Lookups are placed next to the referenced resource, or the first consumer
+    # if the module does not manage the referenced object type
+    targets: Dict[str, str] = {}
+    for resource in resources.values():
+        for ref in resource.references:
+            if ref.target not in targets:
+                targets[ref.target] = (
+                    resources[ref.target].category
+                    if ref.target in resources
+                    else resource.category
+                )
 
-    env = Environment(
-        loader=FileSystemLoader(TEMPLATES_DIR),
-        trim_blocks=True,
-        lstrip_blocks=True,
-        keep_trailing_newline=True,
-        undefined=StrictUndefined,
-    )
-    template = env.get_template(DEFAULT_RESOURCE_TEMPLATE)
-
-    # Generate files by category
-    for category, resources in category_resources.items():
-        rendered_resources = {}
-        for resource in resources:
-            resource_name = resource["name"]
-            resource_content = template.render(
-                {"resource": resource, "category": category},
+    # Group rendered code by category
+    category_content: Dict[str, List[str]] = {}
+    for resource in resources.values():
+        content = category_content.setdefault(resource.category, [])
+        content.append(render_resource(resource, env))
+        if resource.ranks:
+            content.append(render_ranks(resource, env))
+        if resource.name in targets:
+            content.append(render_references(resource.name, definitions, resources, env))
+    for target, category in targets.items():
+        if target not in resources:
+            category_content[category].append(
+                render_references(target, definitions, resources, env)
             )
-            # Add to the grouped resources under 'default' key
-            if "default" not in rendered_resources:
-                rendered_resources["default"] = ""
-            rendered_resources["default"] += resource_content
 
-        file_content = "\n\n".join(rendered_resources.values())
+    for category, content in category_content.items():
         generate_file(
             output_path=MODULE_DIR,
             filename=f"ise_{category}.tf",
-            output_text=file_content,
+            output_text="\n".join(content),
         )
 
 
-def generate_example_model_files(definitions: Dict[str, Any]) -> None:
+def generate_versions_file(provider_version: str) -> None:
+    """Generate versions.tf pinning the provider release the module was generated for"""
+    env = get_jinja_environment()
+    generate_file(
+        output_path=MODULE_DIR,
+        filename="versions.tf",
+        output_text=env.get_template(VERSIONS_TEMPLATE).render(
+            provider_version=provider_version
+        ),
+    )
+
+
+def example_value(attr: Dict[str, Any], nested: bool = False) -> Any:
+    """Example value of an attribute as found in the provider definitions.
+
+    Nested lists are only filled at the first level, deeper levels have
+    incomplete examples in the provider definitions."""
+    if attr["type"] in ("List", "Set") and attr["nested_attributes"]:
+        if nested:
+            return None
+        item = {
+            n["name"]: example_value(n, nested=True)
+            for n in attr["nested_attributes"]
+            if example_value(n, nested=True) is not None
+        }
+        return [item] if item else None
+    if attr["type"] in ("List", "Set"):
+        return [attr["example"]] if "example" in attr else None
+    if attr["type"] == "Map":
+        if "example" not in attr:
+            return None
+        s = attr["example"].strip("{}").replace('"', "")
+        k, v = [item.strip() for item in s.split("=")]
+        return {k: v}
+    if attr["type"] in ("String", "Int64", "Bool", "Float64"):
+        return attr.get("example", None)
+    logger.warning(f"Unsupported attribute type. {attr['name']} / {attr['type']}")
+    return None
+
+
+def generate_example_model_files(resources: Dict[str, Resource]) -> None:
     """Generate example model files based on definitions, group them by files as per doc_category"""
 
-    # Generate example data
-    example_model_data = {}
-    for resource_name, definition in definitions.items():
-        category = definition.get("doc_category", "Other").lower().replace(" ", "_")
-        if category not in example_model_data:
-            example_model_data[category] = {}
-        if resource_name not in example_model_data[category]:
-            example_model_data[category][resource_name] = []
-        resource_object = {}
-        for attr in definition["processed_attributes"]:
-            if attr["type"] == "List":
-                resource_object[attr["name"]] = list()
-                nested_resource_object = {}
-                for sub_attr in attr["nested_attributes"]:
-                    nested_resource_object[sub_attr["name"]] = sub_attr.get(
-                        "example", None
-                    )
-                resource_object[attr["name"]].append(nested_resource_object)
-            elif attr["type"] == "Set":
-                resource_object[attr["name"]] = list()
-                resource_object[attr["name"]].append(attr.get("example", None))
-            elif attr["type"] in ["String", "Int64", "Bool"]:
-                resource_object[attr["name"]] = attr.get("example", None)
-            elif attr["type"] == "Map":
-                if "example" not in attr:
-                    continue
-                resource_object[attr["name"]] = {}
-                s = attr["example"].strip("{}").replace('"', "")
-                k, v = [item.strip() for item in s.split("=")]
-                resource_object[attr["name"]][k] = v
-            else:
-                logger.warning(
-                    f"Unsupported attribute type. {category} / {resource_name} / {attr['name']} / {attr['type']}"
-                )
-        example_model_data[category][resource_name].append(resource_object)
+    # Example objects as defined by the provider
+    examples: Dict[str, Dict[str, Any]] = {}
+    for resource in resources.values():
+        attributes = resource.attributes + (
+            [resource.rank_attribute] if resource.rank_attribute else []
+        )
+        example = {
+            attr["name"]: example_value(attr)
+            for attr in attributes
+            if example_value(attr) is not None
+        }
+        if "name" in resource.key and "name" not in example:
+            example["name"] = resource.name.replace("_", " ").title().replace(" ", "")
+        examples[resource.name] = example
+
+    # Refer to other example objects by name where they are managed by the module,
+    # so that the example is self-contained
+    for resource in resources.values():
+        example = examples[resource.name]
+        for ref in resource.references:
+            target = resources.get(ref.target)
+            if ref.lists or target is None or target is resource:
+                continue
+            if any(example.get(k) != v for k, v in ref.when.items()):
+                continue
+            example.pop(ref.attr, None)
+            target_name = examples[target.name]["name"]
+            example[ref.name] = [target_name] if ref.comma_list else target_name
+
+    # Group examples by category
+    example_model_data: Dict[str, Dict[str, Any]] = {}
+    for resource in resources.values():
+        category = example_model_data.setdefault(resource.category, {})
+        example = examples[resource.name]
+        category[resource.name] = example if resource.singleton else [example]
 
     # Write example files
-    for category, resources in example_model_data.items():
-        file_name = f"ise_{category}.yaml"
-        output_data = {"ise": {category: resources}}
+    for category, category_resources in example_model_data.items():
         generate_file(
             output_path=EXAMPLE_MODEL_DATA_DIR,
-            filename=file_name,
-            output_yaml=output_data,
+            filename=f"ise_{category}.yaml",
+            output_yaml={"ise": {category: category_resources}},
         )
 
 
-def generate_defaults_data(definitions: Dict[str, Any]) -> Dict[str, Any]:
+def is_valid_default(default: Any) -> bool:
+    """Check if a default_value from the provider definitions is usable"""
+    return default is not None and not (isinstance(default, str) and default.strip() == "")
+
+
+def generate_defaults_data(resources: Dict[str, Resource]) -> Dict[str, Any]:
     """Generate default values for all resources, grouped by category. Only include attributes with valid default_value."""
-    defaults_data = {}
-    for resource_name, definition in definitions.items():
-        category = definition.get("doc_category", "Other").lower().replace(" ", "_")
-        if category not in defaults_data:
-            defaults_data[category] = {}
-        if resource_name not in defaults_data[category]:
-            defaults_data[category][resource_name] = {}
-        resource_object = {}
-        for attr in definition["processed_attributes"]:
+    defaults_data: Dict[str, Dict[str, Any]] = {}
+    for resource in resources.values():
+        category = defaults_data.setdefault(resource.category, {})
+        resource_object: Dict[str, Any] = {}
+        for attr in resource.attributes:
+            if attr["nested_attributes"]:
+                # defaults applied to each item of a nested list
+                nested_defaults = {
+                    nested["name"]: nested["default_value"]
+                    for nested in attr["nested_attributes"]
+                    if is_valid_default(nested.get("default_value"))
+                }
+                if nested_defaults:
+                    resource_object[attr["name"]] = nested_defaults
+                continue
             default = attr.get("default_value", None)
-            if default is None or (isinstance(default, str) and default.strip() == ""):
+            if not is_valid_default(default):
                 continue  # skip attributes without valid default_value
-            if attr["type"] == "List":
-                nested_resource_object = {}
-                for sub_attr in attr["nested_attributes"]:
-                    sub_default = sub_attr.get("default_value", None)
-                    if sub_default is not None and (
-                        not isinstance(sub_default, str) or sub_default.strip() != ""
-                    ):
-                        nested_resource_object[sub_attr["name"]] = sub_default
-                if nested_resource_object:
-                    resource_object[attr["name"]] = [nested_resource_object]
-            elif attr["type"] == "Set":
+            if attr["type"] in ("List", "Set"):
                 resource_object[attr["name"]] = [default]
-            elif attr["type"] in ["String", "Int64", "Bool"]:
-                resource_object[attr["name"]] = default
             elif attr["type"] == "Map":
                 resource_object[attr["name"]] = {}
                 if isinstance(default, str):
@@ -387,11 +917,8 @@ def generate_defaults_data(definitions: Dict[str, Any]) -> Dict[str, Any]:
                         k, v = [item.strip() for item in s.split("=")]
                         resource_object[attr["name"]][k] = v
             else:
-                logger.warning(
-                    f"Unsupported attribute type. {category} / {resource_name} / {attr['name']} / {attr['type']}"
-                )
-        if resource_object:
-            defaults_data[category][resource_name] = resource_object
+                resource_object[attr["name"]] = default
+        category[resource.name] = resource_object
 
     # Return finalized defaults data
     return {"defaults": {"ise": defaults_data}}
@@ -407,33 +934,101 @@ def generate_defaults_files(defaults_data: Dict[str, Any]) -> None:
         )
 
 
-def main() -> None:
-    """Main function"""
-    # Get provider code into terraform-provider-ise subdirectory
-    logger.info("Get provider code into subdirectory...")
-    get_provider_code(PROVIDER_DIR)
+def format_terraform_files() -> None:
+    """Format generated Terraform files with terraform fmt"""
+    terraform = shutil.which("terraform")
+    if terraform is None:
+        logger.warning("terraform not found, generated files are not formatted.")
+        return
+    # not recursive on the module directory, gen/ may contain the provider checkout
+    for path, recursive in ((MODULE_DIR, False), (EXAMPLES_DIR, True)):
+        subprocess.run(
+            [terraform, "fmt", *(["-recursive"] if recursive else []), str(path.resolve())],
+            check=True,
+            stdout=subprocess.DEVNULL,
+        )
+
+
+@click.command()
+@click.option(
+    "--provider-source",
+    type=click.Choice(["git", "local"]),
+    default=DEFAULT_PROVIDER_SOURCE_TYPE,
+    show_default=True,
+    help="Clone the provider repository or use a local checkout.",
+)
+@click.option(
+    "--provider-path",
+    default=DEFAULT_PROVIDER_SOURCE_PATH,
+    show_default=True,
+    help="Git URL (git source) or path to a provider checkout (local source).",
+)
+@click.option(
+    "--provider-version",
+    default=DEFAULT_PROVIDER_VERSION,
+    show_default=True,
+    help="Provider release the module is generated for. "
+    "Sets the git tag (v<version>) and the version constraint in versions.tf.",
+)
+@click.option(
+    "--provider-ref",
+    default=None,
+    help="Git branch or tag to clone instead of v<provider-version>.",
+)
+@click.option(
+    "--fmt/--no-fmt",
+    default=True,
+    show_default=True,
+    help="Format generated Terraform files with terraform fmt.",
+)
+def main(
+    provider_source: str,
+    provider_path: str,
+    provider_version: str,
+    provider_ref: Optional[str],
+    fmt: bool,
+) -> None:
+    """Generate the module from the terraform-provider-ise definitions."""
+    if provider_source == "local" and provider_path == DEFAULT_PROVIDER_SOURCE_PATH:
+        raise click.UsageError("--provider-path is required with --provider-source local")
+
+    # Get provider code
+    logger.info("Getting provider code...")
+    provider_dir = get_provider_code(
+        PROVIDER_DIR,
+        source_type=provider_source,
+        source_path=provider_path,
+        git_ref=provider_ref or f"v{provider_version}",
+    )
 
     # Load YAML definitions
     logger.info("Loading YAML definitions from provider repository...")
-    definitions = load_yaml_definitions(PROVIDER_DIR)
+    definitions = load_yaml_definitions(provider_dir)
     logger.info("Processing resource definitions...")
-    processed_definitions = process_resource_definitions(definitions)
+    resources = build_resources(definitions, load_overrides(OVERRIDES_FILE))
+
+    # Remove files of the previous generation
+    remove_generated_files()
 
     # Generate module files
     logger.info("Generating module files...")
-    generate_module_files(processed_definitions)
+    generate_module_files(definitions, resources)
+    generate_versions_file(provider_version)
 
     # Generate example model files
     logger.info("Generating example model files...")
-    generate_example_model_files(processed_definitions)
+    generate_example_model_files(resources)
 
     # Generate defaults data
     logger.info("Generating defaults data...")
-    defaults_data = generate_defaults_data(processed_definitions)
+    defaults_data = generate_defaults_data(resources)
 
     # Generate defaults files
     logger.info("Generating defaults files...")
     generate_defaults_files(defaults_data)
+
+    if fmt:
+        format_terraform_files()
 
 
 if __name__ == "__main__":

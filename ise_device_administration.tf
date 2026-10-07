@@ -9,18 +9,52 @@
 #
 #
 # ==================================================================
-# DEVICE ADMIN POLICY SET 
+# ALLOWED PROTOCOLS TACACS
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | name | String | True | Given name for the policy set, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | description | String | False | The description of the policy set |
-# | is_proxy | Bool | False | Flag which indicates if the policy set service is of type 'Proxy Sequence' or 'Allowed Protocols' |
-# | rank | Int64 | False | The rank (priority) in relation to other policy sets. Lower rank is higher priority. |
-# | service_name | String | True | Policy set service identifier. 'Allowed Protocols' or 'Server Sequence'. |
-# | state | String | False | The state that the policy set is in. A disabled policy set cannot be matched. |
-# | default | Bool | False | Indicates if this policy set is the default one |
+# | name | String | True | The name of the allowed protocols |
+# | description | String | False | Description |
+# | allow_pap_ascii | Bool | True | Allow PAP ASCII |
+# | allow_chap | Bool | True | Allow CHAP |
+# | allow_ms_chap_v1 | Bool | True | Allow MS CHAP v1 |
+#
+# YAML: ise.device_administration.allowed_protocols_tacacs (list, objects identified by name)
+#
+
+locals {
+  # Defaults for allowed protocols tacacs (module defaults merged with user defaults)
+  defaults_allowed_protocols_tacacs = try(local.defaults.ise.device_administration.allowed_protocols_tacacs, {})
+
+  # Allowed protocols tacacs objects with defaults
+  allowed_protocols_tacacs = [for item in try(local.ise.device_administration.allowed_protocols_tacacs, []) : merge(
+    local.defaults_allowed_protocols_tacacs,
+    item
+  )]
+}
+
+resource "ise_allowed_protocols_tacacs" "allowed_protocols_tacacs" {
+  for_each = { for item in local.allowed_protocols_tacacs : item.name => item }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  allow_pap_ascii  = try(each.value.allow_pap_ascii, null)
+  allow_chap       = try(each.value.allow_chap, null)
+  allow_ms_chap_v1 = try(each.value.allow_ms_chap_v1, null)
+}
+
+#
+# ==================================================================
+# DEVICE ADMIN AUTHENTICATION RULE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | policy_set_id | String | False | Policy set ID |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | default | Bool | False | Indicates if this rule is the default one |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
 # | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
@@ -29,214 +63,586 @@
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
+# | children | List | False | List of child conditions |
+# | identity_source_name | String | False | Identity source name from the identity stores |
+# | if_auth_fail | String | True | Action to perform when authentication fails such as Bad credentials, disabled user and so on |
+# | if_process_fail | String | True | Action to perform when ISE is unable to access the identity database |
+# | if_user_not_found | String | True | Action to perform when user is not found in any of identity stores |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_device_admin_authentication_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced device admin policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced device admin condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_authentication_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_device_admin_authentication_rule_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_policy_set = try(local.defaults.ise.device_administration.device_admin_policy_set, {})
+  # Defaults for device admin authentication rule (module defaults merged with user defaults)
+  defaults_device_admin_authentication_rule = try(local.defaults.ise.device_administration.device_admin_authentication_rule, {})
 
-  # Device Admin Policy Set (with defaults)
-  device_admin_policy_set = [for item in try(local.ise.device_administration.device_admin_policy_set, []) : merge(
-    local.defaults_device_admin_policy_set, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_policy_set.children, {}),
-        i
-      )]
-    }
+  # Device admin authentication rule objects with defaults
+  device_admin_authentication_rule = [for item in try(local.ise.device_administration.device_admin_authentication_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_authentication_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_authentication_rule[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create device admin policy set
-resource "ise_device_admin_policy_set" "device_admin_policy_set" {
-  for_each = { for item in try(local.device_admin_policy_set, []) : item.name => item }
+resource "ise_device_admin_authentication_rule" "device_admin_authentication_rule" {
+  for_each = { for item in local.device_admin_authentication_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  is_proxy = try(each.value.is_proxy, null)
-  rank = try(each.value.rank, null)
-  service_name = try(each.value.service_name, null)
-  state = try(each.value.state, null)
-  default = try(each.value.default, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  identity_source_name = try(each.value.identity_source_name, null)
+  if_auth_fail         = try(each.value.if_auth_fail, null)
+  if_process_fail      = try(each.value.if_process_fail, null)
+  if_user_not_found    = try(each.value.if_user_not_found, null)
 }
+
+
 #
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION GLOBAL EXCEPTION RULE UPDATE RANK 
-# ==================================================================
+# ------------------------------------------------------------------
+# DEVICE ADMIN AUTHENTICATION RULE RANKS
+# ------------------------------------------------------------------
 #
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization global exception rule ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
+# Ranks of device admin authentication rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_global_exception_rule_update_rank = try(local.defaults.ise.device_administration.device_admin_authorization_global_exception_rule_update_rank, {})
-
-  # Device Admin Authorization Global Exception Rule Update Rank (with defaults)
-  device_admin_authorization_global_exception_rule_update_rank = [for item in try(local.ise.device_administration.device_admin_authorization_global_exception_rule_update_rank, []) : merge(
-    local.defaults_device_admin_authorization_global_exception_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create device admin authorization global exception rule update rank
-resource "ise_device_admin_authorization_global_exception_rule_update_rank" "device_admin_authorization_global_exception_rule_update_rank" {
-  for_each = { for item in try(local.device_admin_authorization_global_exception_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
+  # Device admin authentication rule objects with a rank, grouped by policy_set_name
+  device_admin_authentication_rule_ranks = {
+    for item in local.device_admin_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
   }
 }
+
+resource "ise_device_admin_authentication_rule_update_ranks" "device_admin_authentication_rule_update_ranks" {
+  for_each = local.device_admin_authentication_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_device_admin_authentication_rule.device_admin_authentication_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
 #
 # ==================================================================
-# DEVICE ADMIN AUTHORIZATION EXCEPTION RULE UPDATE RANK 
+# DEVICE ADMIN AUTHORIZATION EXCEPTION RULE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization exception rule ID |
 # | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | default | Bool | False | Indicates if this rule is the default one |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
+# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_device_admin_authorization_exception_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced device admin policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced device admin condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_authorization_exception_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_device_admin_authorization_exception_rule_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_exception_rule_update_rank = try(local.defaults.ise.device_administration.device_admin_authorization_exception_rule_update_rank, {})
+  # Defaults for device admin authorization exception rule (module defaults merged with user defaults)
+  defaults_device_admin_authorization_exception_rule = try(local.defaults.ise.device_administration.device_admin_authorization_exception_rule, {})
 
-  # Device Admin Authorization Exception Rule Update Rank (with defaults)
-  device_admin_authorization_exception_rule_update_rank = [for item in try(local.ise.device_administration.device_admin_authorization_exception_rule_update_rank, []) : merge(
-    local.defaults_device_admin_authorization_exception_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+  # Device admin authorization exception rule objects with defaults
+  device_admin_authorization_exception_rule = [for item in try(local.ise.device_administration.device_admin_authorization_exception_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_authorization_exception_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_authorization_exception_rule[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create device admin authorization exception rule update rank
-resource "ise_device_admin_authorization_exception_rule_update_rank" "device_admin_authorization_exception_rule_update_rank" {
-  for_each = { for item in try(local.device_admin_authorization_exception_rule_update_rank, []) : item.name => item }
+resource "ise_device_admin_authorization_exception_rule" "device_admin_authorization_exception_rule" {
+  for_each = { for item in local.device_admin_authorization_exception_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
 
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  command_sets = try(each.value.command_sets, null)
+  profile      = try(each.value.profile, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# DEVICE ADMIN AUTHORIZATION EXCEPTION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of device admin authorization exception rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Device admin authorization exception rule objects with a rank, grouped by policy_set_name
+  device_admin_authorization_exception_rule_ranks = {
+    for item in local.device_admin_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
   }
 }
+
+resource "ise_device_admin_authorization_exception_rule_update_ranks" "device_admin_authorization_exception_rule_update_ranks" {
+  for_each = local.device_admin_authorization_exception_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_device_admin_authorization_exception_rule.device_admin_authorization_exception_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
 #
 # ==================================================================
-# TACACS PROFILE 
+# DEVICE ADMIN AUTHORIZATION GLOBAL EXCEPTION RULE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | name | String | True | The name of the TACACS profile |
-# | description | String | False | Description |
-# | session_attributes | List | False |  |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
+# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_device_admin_authorization_global_exception_rule_update_ranks` |
+# | condition_name | String | False | Name of the referenced device admin condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_authorization_global_exception_rule (list, objects identified by name)
+# The rank attribute is applied through ise_device_admin_authorization_global_exception_rule_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_tacacs_profile = try(local.defaults.ise.device_administration.tacacs_profile, {})
+  # Defaults for device admin authorization global exception rule (module defaults merged with user defaults)
+  defaults_device_admin_authorization_global_exception_rule = try(local.defaults.ise.device_administration.device_admin_authorization_global_exception_rule, {})
 
-  # Tacacs Profile (with defaults)
-  tacacs_profile = [for item in try(local.ise.device_administration.tacacs_profile, []) : merge(
-    local.defaults_tacacs_profile, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      session_attributes = [for i in try(item.session_attributes, []) : merge(
-        try(local.defaults_tacacs_profile.session_attributes, {}),
-        i
-      )]
-    }
+  # Device admin authorization global exception rule objects with defaults
+  device_admin_authorization_global_exception_rule = [for item in try(local.ise.device_administration.device_admin_authorization_global_exception_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_authorization_global_exception_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_authorization_global_exception_rule[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create tacacs profile
-resource "ise_tacacs_profile" "tacacs_profile" {
-  for_each = { for item in try(local.tacacs_profile, []) : item.name => item }
+resource "ise_device_admin_authorization_global_exception_rule" "device_admin_authorization_global_exception_rule" {
+  for_each = { for item in local.device_admin_authorization_global_exception_rule : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  session_attributes = try([for i in each.value.session_attributes : {
-    type = try(i.type, null),
-    name = try(i.name, null),
-    value = try(i.value, null)
-  }], null)
+  name                       = try(each.value.name, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  command_sets = try(each.value.command_sets, null)
+  profile      = try(each.value.profile, null)
 }
+
+
+#
+# ------------------------------------------------------------------
+# DEVICE ADMIN AUTHORIZATION GLOBAL EXCEPTION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of device admin authorization global exception rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Device admin authorization global exception rule objects with a rank
+  device_admin_authorization_global_exception_rule_ranks = [for item in local.device_admin_authorization_global_exception_rule : item if try(item.rank, null) != null && !try(item.default, false)]
+}
+
+resource "ise_device_admin_authorization_global_exception_rule_update_ranks" "device_admin_authorization_global_exception_rule_update_ranks" {
+  count = length(local.device_admin_authorization_global_exception_rule_ranks) > 0 ? 1 : 0
+
+  rules = [for item in local.device_admin_authorization_global_exception_rule_ranks : {
+    id   = ise_device_admin_authorization_global_exception_rule.device_admin_authorization_global_exception_rule[item.name].id
+    rank = item.rank
+  }]
+}
+
 #
 # ==================================================================
-# DEVICE ADMIN POLICY SET UPDATE RANKS 
+# DEVICE ADMIN AUTHORIZATION RULE
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | policies | List | False |  |
+# | policy_set_id | String | False | Policy set ID |
+# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | default | Bool | False | Indicates if this rule is the default one |
+# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
+# | condition_id | String | False | UUID for condition |
+# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
+# | condition_attribute_name | String | False | Dictionary attribute name |
+# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
+# | condition_dictionary_name | String | False | Dictionary name |
+# | condition_dictionary_value | String | False | Dictionary value |
+# | condition_operator | String | False | Equality operator |
+# | children | List | False | List of child conditions |
+# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
+# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
+# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority, applied through `ise_device_admin_authorization_rule_update_ranks` |
+# | policy_set_name | String | False | Name of the referenced device admin policy set, alternative to `policy_set_id` |
+# | condition_name | String | False | Name of the referenced device admin condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_authorization_rule (list, objects identified by policy_set_name/name)
+# The rank attribute is applied through ise_device_admin_authorization_rule_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_policy_set_update_ranks = try(local.defaults.ise.device_administration.device_admin_policy_set_update_ranks, {})
+  # Defaults for device admin authorization rule (module defaults merged with user defaults)
+  defaults_device_admin_authorization_rule = try(local.defaults.ise.device_administration.device_admin_authorization_rule, {})
 
-  # Device Admin Policy Set Update Ranks (with defaults)
-  device_admin_policy_set_update_ranks = [for item in try(local.ise.device_administration.device_admin_policy_set_update_ranks, []) : merge(
-    local.defaults_device_admin_policy_set_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      policies = [for i in try(item.policies, []) : merge(
-        try(local.defaults_device_admin_policy_set_update_ranks.policies, {}),
-        i
-      )]
-    }
+  # Device admin authorization rule objects with defaults
+  device_admin_authorization_rule = [for item in try(local.ise.device_administration.device_admin_authorization_rule, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_authorization_rule : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_authorization_rule[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create device admin policy set update ranks
-resource "ise_device_admin_policy_set_update_ranks" "device_admin_policy_set_update_ranks" {
-  for_each = { for item in try(local.device_admin_policy_set_update_ranks, []) : item.name => item }
+resource "ise_device_admin_authorization_rule" "device_admin_authorization_rule" {
+  for_each = { for item in local.device_admin_authorization_rule : format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name) => item }
 
-  # General attributes
-  policies = try([for i in each.value.policies : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
+  policy_set_id              = try(each.value.policy_set_id, null) != null ? each.value.policy_set_id : try(each.value.policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value.policy_set_name] : null
+  name                       = try(each.value.name, null)
+  default                    = try(each.value.default, null)
+  state                      = try(each.value.state, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
+  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+  command_sets = try(each.value.command_sets, null)
+  profile      = try(each.value.profile, null)
 }
+
+
+#
+# ------------------------------------------------------------------
+# DEVICE ADMIN AUTHORIZATION RULE RANKS
+# ------------------------------------------------------------------
+#
+# Ranks of device admin authorization rule objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
+#
+
+locals {
+  # Device admin authorization rule objects with a rank, grouped by policy_set_name
+  device_admin_authorization_rule_ranks = {
+    for item in local.device_admin_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+  }
+}
+
+resource "ise_device_admin_authorization_rule_update_ranks" "device_admin_authorization_rule_update_ranks" {
+  for_each = local.device_admin_authorization_rule_ranks
+
+  policy_set_id = try(each.value[0].policy_set_id, null) != null ? each.value[0].policy_set_id : try(each.value[0].policy_set_name, null) != null ? local.device_admin_policy_set_ids[each.value[0].policy_set_name] : null
+  rules = [for item in each.value : {
+    id   = ise_device_admin_authorization_rule.device_admin_authorization_rule[format("%s/%s", try(item.policy_set_name, item.policy_set_id, ""), item.name)].id
+    rank = item.rank
+  }]
+}
+
 #
 # ==================================================================
-# DEVICE ADMIN CONDITION 
+# DEVICE ADMIN CONDITION
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -250,66 +656,474 @@ resource "ise_device_admin_policy_set_update_ranks" "device_admin_policy_set_upd
 # | dictionary_name | String | False | Dictionary name |
 # | dictionary_value | String | False | Dictionary value |
 # | operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `LibraryConditionAndBlock` or `LibraryConditionOrBlock`. |
+# | children | List | False | List of child conditions |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_condition (list, objects identified by name)
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for device admin condition (module defaults merged with user defaults)
   defaults_device_admin_condition = try(local.defaults.ise.device_administration.device_admin_condition, {})
 
-  # Device Admin Condition (with defaults)
+  # Device admin condition objects with defaults
   device_admin_condition = [for item in try(local.ise.device_administration.device_admin_condition, []) : merge(
-    local.defaults_device_admin_condition, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_condition.children, {}),
-        i
-      )]
-    }
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_condition : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_condition[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create device admin condition
+locals {
+  # Managed device admin condition objects each object refers to. Objects are
+  # created in tiers so that referenced objects exist before the objects using them.
+  device_admin_condition_self_references = {
+    for item in local.device_admin_condition : item.name => [
+      for n in distinct(compact(flatten([
+        [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]],
+        [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]],
+      ]))) : n if contains([for i in local.device_admin_condition : i.name], n)
+    ]
+  }
+  device_admin_condition_tier0    = [for k, refs in local.device_admin_condition_self_references : k if length(refs) == 0]
+  device_admin_condition_tier1    = [for k, refs in local.device_admin_condition_self_references : k if !contains(concat(local.device_admin_condition_tier0), k) && alltrue([for n in refs : contains(concat(local.device_admin_condition_tier0), n)])]
+  device_admin_condition_tier2    = [for k, refs in local.device_admin_condition_self_references : k if !contains(concat(local.device_admin_condition_tier0, local.device_admin_condition_tier1), k) && alltrue([for n in refs : contains(concat(local.device_admin_condition_tier0, local.device_admin_condition_tier1), n)])]
+  device_admin_condition_tier3    = [for k, refs in local.device_admin_condition_self_references : k if !contains(concat(local.device_admin_condition_tier0, local.device_admin_condition_tier1, local.device_admin_condition_tier2), k) && alltrue([for n in refs : contains(concat(local.device_admin_condition_tier0, local.device_admin_condition_tier1, local.device_admin_condition_tier2), n)])]
+  device_admin_condition_untiered = [for k in keys(local.device_admin_condition_self_references) : k if !contains(concat(local.device_admin_condition_tier0, local.device_admin_condition_tier1, local.device_admin_condition_tier2, local.device_admin_condition_tier3), k)]
+}
+
+resource "terraform_data" "device_admin_condition_tiers" {
+  lifecycle {
+    precondition {
+      condition     = length(local.device_admin_condition_untiered) == 0
+      error_message = "Device admin condition objects refer to each other in a loop or more than 3 levels deep: ${join(", ", local.device_admin_condition_untiered)}"
+    }
+  }
+}
+
 resource "ise_device_admin_condition" "device_admin_condition" {
-  for_each = { for item in try(local.device_admin_condition, []) : item.name => item }
+  for_each = { for item in local.device_admin_condition : item.name => item if contains(local.device_admin_condition_tier0, item.name) }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  condition_type = try(each.value.condition_type, null)
-  is_negate = try(each.value.is_negate, null)
-  attribute_name = try(each.value.attribute_name, null)
-  attribute_value = try(each.value.attribute_value, null)
-  dictionary_name = try(each.value.dictionary_name, null)
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
   dictionary_value = try(each.value.dictionary_value, null)
-  operator = try(each.value.operator, null)
-  children = try([for i in each.value.children : {
-    name = try(i.name, null),
-    description = try(i.description, null),
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier0[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
 }
+
+resource "ise_device_admin_condition" "device_admin_condition_tier1" {
+  for_each = { for item in local.device_admin_condition : item.name => item if contains(local.device_admin_condition_tier1, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier1[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+resource "ise_device_admin_condition" "device_admin_condition_tier2" {
+  for_each = { for item in local.device_admin_condition : item.name => item if contains(local.device_admin_condition_tier2, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier2[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+resource "ise_device_admin_condition" "device_admin_condition_tier3" {
+  for_each = { for item in local.device_admin_condition : item.name => item if contains(local.device_admin_condition_tier3, item.name) }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  condition_type   = try(each.value.condition_type, null)
+  is_negate        = try(each.value.is_negate, null)
+  attribute_name   = try(each.value.attribute_name, null)
+  attribute_value  = try(each.value.attribute_value, null)
+  dictionary_name  = try(each.value.dictionary_name, null)
+  dictionary_value = try(each.value.dictionary_value, null)
+  operator         = try(each.value.operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    name             = try(i1.name, null)
+    description      = try(i1.description, null)
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      name             = try(i2.name, null)
+      description      = try(i2.description, null)
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids_tier3[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
+}
+
+
+#
+# ------------------------------------------------------------------
+# DEVICE ADMIN CONDITION REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to device admin condition objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  device_admin_condition_referenced_names = distinct(compact(flatten([
+    [for item in local.device_admin_authentication_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_authentication_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.device_admin_authorization_exception_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_authorization_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_authorization_global_exception_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.device_admin_authorization_rule : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_authorization_rule : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_condition : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+    [for item in local.device_admin_policy_set : [for v0 in [item] : try(v0.condition_name, null) if try(v0.condition_id, null) == null && try(v0.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : try(v1.name, null) if try(v1.id, null) == null && try(v1.condition_type, null) == "ConditionReference"]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : try(v2.name, null) if try(v2.id, null) == null && try(v2.condition_type, null) == "ConditionReference"]]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : try(v3.name, null) if try(v3.id, null) == null && try(v3.condition_type, null) == "ConditionReference"]]]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : try(v4.name, null) if try(v4.id, null) == null && try(v4.condition_type, null) == "ConditionReference"]]]]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : try(v5.name, null) if try(v5.id, null) == null && try(v5.condition_type, null) == "ConditionReference"]]]]]],
+    [for item in local.device_admin_policy_set : [for v1 in try(item.children, []) : [for v2 in try(v1.children, []) : [for v3 in try(v2.children, []) : [for v4 in try(v3.children, []) : [for v5 in try(v4.children, []) : [for v6 in try(v5.children, []) : try(v6.name, null) if try(v6.id, null) == null && try(v6.condition_type, null) == "ConditionReference"]]]]]]],
+  ])))
+  device_admin_condition_managed_names   = [for item in local.device_admin_condition : item.name]
+  device_admin_condition_unmanaged_names = [for n in local.device_admin_condition_referenced_names : n if !contains(local.device_admin_condition_managed_names, n)]
+}
+
+data "ise_device_admin_condition" "device_admin_condition" {
+  for_each = toset(local.device_admin_condition_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  device_admin_condition_lookup_ids = { for k, v in data.ise_device_admin_condition.device_admin_condition : k => v.id }
+  device_admin_condition_ids_tier0 = merge(
+    local.device_admin_condition_lookup_ids,
+  )
+  device_admin_condition_ids_tier1 = merge(
+    local.device_admin_condition_lookup_ids,
+    { for k, v in ise_device_admin_condition.device_admin_condition : k => v.id },
+  )
+  device_admin_condition_ids_tier2 = merge(
+    local.device_admin_condition_lookup_ids,
+    { for k, v in ise_device_admin_condition.device_admin_condition : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier1 : k => v.id },
+  )
+  device_admin_condition_ids_tier3 = merge(
+    local.device_admin_condition_lookup_ids,
+    { for k, v in ise_device_admin_condition.device_admin_condition : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier1 : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier2 : k => v.id },
+  )
+  device_admin_condition_ids = merge(
+    local.device_admin_condition_lookup_ids,
+    { for k, v in ise_device_admin_condition.device_admin_condition : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier1 : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier2 : k => v.id },
+    { for k, v in ise_device_admin_condition.device_admin_condition_tier3 : k => v.id },
+  )
+}
+
 #
 # ==================================================================
-# DEVICE ADMIN AUTHENTICATION RULE 
+# DEVICE ADMIN POLICY SET
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
+# | name | String | True | Given name for the policy set, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
+# | description | String | False | The description of the policy set |
+# | is_proxy | Bool | False | Flag which indicates if the policy set service is of type 'Proxy Sequence' or 'Allowed Protocols' |
+# | service_name | String | True | Policy set service identifier. 'Allowed Protocols' or 'Server Sequence'. |
+# | state | String | False | The state that the policy set is in. A disabled policy set cannot be matched. |
+# | default | Bool | False | Indicates if this policy set is the default one |
 # | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
 # | condition_id | String | False | UUID for condition |
 # | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
@@ -318,633 +1132,168 @@ resource "ise_device_admin_condition" "device_admin_condition" {
 # | condition_dictionary_name | String | False | Dictionary name |
 # | condition_dictionary_value | String | False | Dictionary value |
 # | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | identity_source_name | String | False | Identity source name from the identity stores |
-# | if_auth_fail | String | True | Action to perform when authentication fails such as Bad credentials, disabled user and so on |
-# | if_process_fail | String | True | Action to perform when ISE is unable to access the identity database |
-# | if_user_not_found | String | True | Action to perform when user is not found in any of identity stores |
+# | children | List | False | List of child conditions |
+# | rank | Int64 | False | The rank (priority) in relation to other policy sets. Lower rank is higher priority, applied through `ise_device_admin_policy_set_update_ranks` |
+# | condition_name | String | False | Name of the referenced device admin condition, alternative to `condition_id` (if `condition_type` is `ConditionReference`) |
+# | children.name | String | False | Name of the referenced device admin condition, alternative to `id` (if `condition_type` is `ConditionReference`) |
+#
+# YAML: ise.device_administration.device_admin_policy_set (list, objects identified by name)
+# The rank attribute is applied through ise_device_admin_policy_set_update_ranks.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authentication_rule = try(local.defaults.ise.device_administration.device_admin_authentication_rule, {})
+  # Defaults for device admin policy set (module defaults merged with user defaults)
+  defaults_device_admin_policy_set = try(local.defaults.ise.device_administration.device_admin_policy_set, {})
 
-  # Device Admin Authentication Rule (with defaults)
-  device_admin_authentication_rule = [for item in try(local.ise.device_administration.device_admin_authentication_rule, []) : merge(
-    local.defaults_device_admin_authentication_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_authentication_rule.children, {}),
-        i
-      )]
-    }
+  # Device admin policy set objects with defaults
+  device_admin_policy_set = [for item in try(local.ise.device_administration.device_admin_policy_set, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_device_admin_policy_set : k => v if !contains(["children"], k) },
+    item,
+    { for k in ["children"] : k => [for i in item[k] : merge(try(local.defaults_device_admin_policy_set[k], {}), i)] if try(item[k], null) != null }
   )]
 }
 
-# Create device admin authentication rule
-resource "ise_device_admin_authentication_rule" "device_admin_authentication_rule" {
-  for_each = { for item in try(local.device_admin_authentication_rule, []) : item.name => item }
+resource "ise_device_admin_policy_set" "device_admin_policy_set" {
+  for_each = { for item in local.device_admin_policy_set : item.name => item }
 
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
+  name                       = try(each.value.name, null)
+  description                = try(each.value.description, null)
+  is_proxy                   = try(each.value.is_proxy, null)
+  service_name               = try(each.value.service_name, null)
+  state                      = try(each.value.state, null)
+  default                    = try(each.value.default, null)
+  condition_type             = try(each.value.condition_type, null)
+  condition_id               = try(each.value.condition_id, null) != null ? each.value.condition_id : try(each.value.condition_name, null) != null && try(each.value.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[each.value.condition_name] : null
+  condition_is_negate        = try(each.value.condition_is_negate, null)
+  condition_attribute_name   = try(each.value.condition_attribute_name, null)
+  condition_attribute_value  = try(each.value.condition_attribute_value, null)
+  condition_dictionary_name  = try(each.value.condition_dictionary_name, null)
   condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  identity_source_name = try(each.value.identity_source_name, null)
-  if_auth_fail = try(each.value.if_auth_fail, null)
-  if_process_fail = try(each.value.if_process_fail, null)
-  if_user_not_found = try(each.value.if_user_not_found, null)
+  condition_operator         = try(each.value.condition_operator, null)
+  children = try(each.value.children, null) == null ? null : [for i1 in each.value.children : {
+    condition_type   = try(i1.condition_type, null)
+    id               = try(i1.id, null) != null ? i1.id : try(i1.name, null) != null && try(i1.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i1.name] : null
+    is_negate        = try(i1.is_negate, null)
+    attribute_name   = try(i1.attribute_name, null)
+    attribute_value  = try(i1.attribute_value, null)
+    dictionary_name  = try(i1.dictionary_name, null)
+    dictionary_value = try(i1.dictionary_value, null)
+    operator         = try(i1.operator, null)
+    children = try(i1.children, null) == null ? null : [for i2 in i1.children : {
+      condition_type   = try(i2.condition_type, null)
+      id               = try(i2.id, null) != null ? i2.id : try(i2.name, null) != null && try(i2.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i2.name] : null
+      is_negate        = try(i2.is_negate, null)
+      attribute_name   = try(i2.attribute_name, null)
+      attribute_value  = try(i2.attribute_value, null)
+      dictionary_name  = try(i2.dictionary_name, null)
+      dictionary_value = try(i2.dictionary_value, null)
+      operator         = try(i2.operator, null)
+      children = try(i2.children, null) == null ? null : [for i3 in i2.children : {
+        condition_type   = try(i3.condition_type, null)
+        id               = try(i3.id, null) != null ? i3.id : try(i3.name, null) != null && try(i3.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i3.name] : null
+        is_negate        = try(i3.is_negate, null)
+        attribute_name   = try(i3.attribute_name, null)
+        attribute_value  = try(i3.attribute_value, null)
+        dictionary_name  = try(i3.dictionary_name, null)
+        dictionary_value = try(i3.dictionary_value, null)
+        operator         = try(i3.operator, null)
+        children = try(i3.children, null) == null ? null : [for i4 in i3.children : {
+          condition_type   = try(i4.condition_type, null)
+          id               = try(i4.id, null) != null ? i4.id : try(i4.name, null) != null && try(i4.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i4.name] : null
+          is_negate        = try(i4.is_negate, null)
+          attribute_name   = try(i4.attribute_name, null)
+          attribute_value  = try(i4.attribute_value, null)
+          dictionary_name  = try(i4.dictionary_name, null)
+          dictionary_value = try(i4.dictionary_value, null)
+          operator         = try(i4.operator, null)
+          children = try(i4.children, null) == null ? null : [for i5 in i4.children : {
+            condition_type   = try(i5.condition_type, null)
+            id               = try(i5.id, null) != null ? i5.id : try(i5.name, null) != null && try(i5.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i5.name] : null
+            is_negate        = try(i5.is_negate, null)
+            attribute_name   = try(i5.attribute_name, null)
+            attribute_value  = try(i5.attribute_value, null)
+            dictionary_name  = try(i5.dictionary_name, null)
+            dictionary_value = try(i5.dictionary_value, null)
+            operator         = try(i5.operator, null)
+            children = try(i5.children, null) == null ? null : [for i6 in i5.children : {
+              condition_type   = try(i6.condition_type, null)
+              id               = try(i6.id, null) != null ? i6.id : try(i6.name, null) != null && try(i6.condition_type, null) == "ConditionReference" ? local.device_admin_condition_ids[i6.name] : null
+              is_negate        = try(i6.is_negate, null)
+              attribute_name   = try(i6.attribute_name, null)
+              attribute_value  = try(i6.attribute_value, null)
+              dictionary_name  = try(i6.dictionary_name, null)
+              dictionary_value = try(i6.dictionary_value, null)
+              operator         = try(i6.operator, null)
+            }]
+          }]
+        }]
+      }]
+    }]
+  }]
 }
+
+
 #
-# ==================================================================
-# DEVICE ADMIN AUTHENTICATION RULE UPDATE RANK 
-# ==================================================================
+# ------------------------------------------------------------------
+# DEVICE ADMIN POLICY SET RANKS
+# ------------------------------------------------------------------
 #
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authentication rule ID |
-# | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
+# Ranks of device admin policy set objects are applied in bulk after the
+# objects exist. Objects without a rank and default objects are left as they are.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authentication_rule_update_rank = try(local.defaults.ise.device_administration.device_admin_authentication_rule_update_rank, {})
-
-  # Device Admin Authentication Rule Update Rank (with defaults)
-  device_admin_authentication_rule_update_rank = [for item in try(local.ise.device_administration.device_admin_authentication_rule_update_rank, []) : merge(
-    local.defaults_device_admin_authentication_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
+  # Device admin policy set objects with a rank
+  device_admin_policy_set_ranks = [for item in local.device_admin_policy_set : item if try(item.rank, null) != null && !try(item.default, false)]
 }
 
-# Create device admin authentication rule update rank
-resource "ise_device_admin_authentication_rule_update_rank" "device_admin_authentication_rule_update_rank" {
-  for_each = { for item in try(local.device_admin_authentication_rule_update_rank, []) : item.name => item }
+resource "ise_device_admin_policy_set_update_ranks" "device_admin_policy_set_update_ranks" {
+  count = length(local.device_admin_policy_set_ranks) > 0 ? 1 : 0
 
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
+  policies = [for item in local.device_admin_policy_set_ranks : {
+    id   = ise_device_admin_policy_set.device_admin_policy_set[item.name].id
+    rank = item.rank
+  }]
 }
+
+
 #
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION GLOBAL EXCEPTION RULE UPDATE RANKS 
-# ==================================================================
+# ------------------------------------------------------------------
+# DEVICE ADMIN POLICY SET REFERENCES
+# ------------------------------------------------------------------
 #
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rules | List | False |  |
+# Other objects can refer to device admin policy set objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
 #
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_global_exception_rule_update_ranks = try(local.defaults.ise.device_administration.device_admin_authorization_global_exception_rule_update_ranks, {})
-
-  # Device Admin Authorization Global Exception Rule Update Ranks (with defaults)
-  device_admin_authorization_global_exception_rule_update_ranks = [for item in try(local.ise.device_administration.device_admin_authorization_global_exception_rule_update_ranks, []) : merge(
-    local.defaults_device_admin_authorization_global_exception_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_device_admin_authorization_global_exception_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
+  device_admin_policy_set_referenced_names = distinct(compact(flatten([
+    [for item in local.device_admin_authentication_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+    [for item in local.device_admin_authorization_exception_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+    [for item in local.device_admin_authorization_rule : [for v0 in [item] : try(v0.policy_set_name, null) if try(v0.policy_set_id, null) == null]],
+  ])))
+  device_admin_policy_set_managed_names   = [for item in local.device_admin_policy_set : item.name]
+  device_admin_policy_set_unmanaged_names = [for n in local.device_admin_policy_set_referenced_names : n if !contains(local.device_admin_policy_set_managed_names, n)]
 }
 
-# Create device admin authorization global exception rule update ranks
-resource "ise_device_admin_authorization_global_exception_rule_update_ranks" "device_admin_authorization_global_exception_rule_update_ranks" {
-  for_each = { for item in try(local.device_admin_authorization_global_exception_rule_update_ranks, []) : item.name => item }
+data "ise_device_admin_policy_set" "device_admin_policy_set" {
+  for_each = toset(local.device_admin_policy_set_unmanaged_names)
 
-  # General attributes
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
+  name = each.key
 }
-#
-# ==================================================================
-# ALLOWED PROTOCOLS TACACS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the allowed protocols |
-# | description | String | False | Description |
-# | allow_pap_ascii | Bool | True | Allow PAP ASCII |
-# | allow_chap | Bool | True | Allow CHAP |
-# | allow_ms_chap_v1 | Bool | True | Allow MS CHAP v1 |
-#
 
 locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_allowed_protocols_tacacs = try(local.defaults.ise.device_administration.allowed_protocols_tacacs, {})
-
-  # Allowed Protocols Tacacs (with defaults)
-  allowed_protocols_tacacs = [for item in try(local.ise.device_administration.allowed_protocols_tacacs, []) : merge(
-    local.defaults_allowed_protocols_tacacs, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
+  device_admin_policy_set_lookup_ids = { for k, v in data.ise_device_admin_policy_set.device_admin_policy_set : k => v.id }
+  device_admin_policy_set_ids = merge(
+    local.device_admin_policy_set_lookup_ids,
+    { for k, v in ise_device_admin_policy_set.device_admin_policy_set : k => v.id },
+  )
 }
 
-# Create allowed protocols tacacs
-resource "ise_allowed_protocols_tacacs" "allowed_protocols_tacacs" {
-  for_each = { for item in try(local.allowed_protocols_tacacs, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  allow_pap_ascii = try(each.value.allow_pap_ascii, null)
-  allow_chap = try(each.value.allow_chap, null)
-  allow_ms_chap_v1 = try(each.value.allow_ms_chap_v1, null)
-}
 #
 # ==================================================================
-# DEVICE ADMIN AUTHORIZATION RULE UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | rule_id | String | True | Authorization rule ID |
-# | policy_set_id | String | False | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_rule_update_rank = try(local.defaults.ise.device_administration.device_admin_authorization_rule_update_rank, {})
-
-  # Device Admin Authorization Rule Update Rank (with defaults)
-  device_admin_authorization_rule_update_rank = [for item in try(local.ise.device_administration.device_admin_authorization_rule_update_rank, []) : merge(
-    local.defaults_device_admin_authorization_rule_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create device admin authorization rule update rank
-resource "ise_device_admin_authorization_rule_update_rank" "device_admin_authorization_rule_update_rank" {
-  for_each = { for item in try(local.device_admin_authorization_rule_update_rank, []) : item.name => item }
-
-  # General attributes
-  rule_id = try(each.value.rule_id, null)
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [rule_id]
-  }
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION EXCEPTION RULE UPDATE RANKS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_exception_rule_update_ranks = try(local.defaults.ise.device_administration.device_admin_authorization_exception_rule_update_ranks, {})
-
-  # Device Admin Authorization Exception Rule Update Ranks (with defaults)
-  device_admin_authorization_exception_rule_update_ranks = [for item in try(local.ise.device_administration.device_admin_authorization_exception_rule_update_ranks, []) : merge(
-    local.defaults_device_admin_authorization_exception_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_device_admin_authorization_exception_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authorization exception rule update ranks
-resource "ise_device_admin_authorization_exception_rule_update_ranks" "device_admin_authorization_exception_rule_update_ranks" {
-  for_each = { for item in try(local.device_admin_authorization_exception_rule_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN POLICY SET UPDATE RANK 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rank | Int64 | True | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_policy_set_update_rank = try(local.defaults.ise.device_administration.device_admin_policy_set_update_rank, {})
-
-  # Device Admin Policy Set Update Rank (with defaults)
-  device_admin_policy_set_update_rank = [for item in try(local.ise.device_administration.device_admin_policy_set_update_rank, []) : merge(
-    local.defaults_device_admin_policy_set_update_rank, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
-  )]
-}
-
-# Create device admin policy set update rank
-resource "ise_device_admin_policy_set_update_rank" "device_admin_policy_set_update_rank" {
-  for_each = { for item in try(local.device_admin_policy_set_update_rank, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rank = try(each.value.rank, null)
-  
-  lifecycle {
-    ignore_changes = [policy_set_id]
-  }
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION EXCEPTION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
-# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_exception_rule = try(local.defaults.ise.device_administration.device_admin_authorization_exception_rule, {})
-
-  # Device Admin Authorization Exception Rule (with defaults)
-  device_admin_authorization_exception_rule = [for item in try(local.ise.device_administration.device_admin_authorization_exception_rule, []) : merge(
-    local.defaults_device_admin_authorization_exception_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_authorization_exception_rule.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authorization exception rule
-resource "ise_device_admin_authorization_exception_rule" "device_admin_authorization_exception_rule" {
-  for_each = { for item in try(local.device_admin_authorization_exception_rule, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  command_sets = try(each.value.command_sets, null)
-  profile = try(each.value.profile, null)
-}
-#
-# ==================================================================
-# TACACS COMMAND SET 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | The name of the TACACS command set |
-# | description | String | False | Description |
-# | permit_unmatched | Bool | False | Permit unmatched commands |
-# | commands | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_tacacs_command_set = try(local.defaults.ise.device_administration.tacacs_command_set, {})
-
-  # Tacacs Command Set (with defaults)
-  tacacs_command_set = [for item in try(local.ise.device_administration.tacacs_command_set, []) : merge(
-    local.defaults_tacacs_command_set, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      commands = [for i in try(item.commands, []) : merge(
-        try(local.defaults_tacacs_command_set.commands, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create tacacs command set
-resource "ise_tacacs_command_set" "tacacs_command_set" {
-  for_each = { for item in try(local.tacacs_command_set, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  permit_unmatched = try(each.value.permit_unmatched, null)
-  commands = try([for i in each.value.commands : {
-    grant = try(i.grant, null),
-    command = try(i.command, null),
-    arguments = try(i.arguments, null)
-  }], null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHENTICATION RULE UPDATE RANKS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authentication_rule_update_ranks = try(local.defaults.ise.device_administration.device_admin_authentication_rule_update_ranks, {})
-
-  # Device Admin Authentication Rule Update Ranks (with defaults)
-  device_admin_authentication_rule_update_ranks = [for item in try(local.ise.device_administration.device_admin_authentication_rule_update_ranks, []) : merge(
-    local.defaults_device_admin_authentication_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_device_admin_authentication_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authentication rule update ranks
-resource "ise_device_admin_authentication_rule_update_ranks" "device_admin_authentication_rule_update_ranks" {
-  for_each = { for item in try(local.device_admin_authentication_rule_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION GLOBAL EXCEPTION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
-# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_global_exception_rule = try(local.defaults.ise.device_administration.device_admin_authorization_global_exception_rule, {})
-
-  # Device Admin Authorization Global Exception Rule (with defaults)
-  device_admin_authorization_global_exception_rule = [for item in try(local.ise.device_administration.device_admin_authorization_global_exception_rule, []) : merge(
-    local.defaults_device_admin_authorization_global_exception_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_authorization_global_exception_rule.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authorization global exception rule
-resource "ise_device_admin_authorization_global_exception_rule" "device_admin_authorization_global_exception_rule" {
-  for_each = { for item in try(local.device_admin_authorization_global_exception_rule, []) : item.name => item }
-
-  # General attributes
-  name = try(each.value.name, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  command_sets = try(each.value.command_sets, null)
-  profile = try(each.value.profile, null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION RULE 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | False | Policy set ID |
-# | name | String | True | Rule name, [Valid characters are alphanumerics, underscore, hyphen, space, period, parentheses] |
-# | default | Bool | False | Indicates if this rule is the default one |
-# | rank | Int64 | False | The rank (priority) in relation to other rules. Lower rank is higher priority. |
-# | state | String | False | The state that the rule is in. A disabled rule cannot be matched. |
-# | condition_type | String | False | Indicates whether the record is the condition itself or a logical aggregation. Logical aggreation indicates that additional conditions are present under the children attribute. |
-# | condition_id | String | False | UUID for condition |
-# | condition_is_negate | Bool | False | Indicates whereas this condition is in negate mode |
-# | condition_attribute_name | String | False | Dictionary attribute name |
-# | condition_attribute_value | String | False | Attribute value for condition. Value type is specified in dictionary object. |
-# | condition_dictionary_name | String | False | Dictionary name |
-# | condition_dictionary_value | String | False | Dictionary value |
-# | condition_operator | String | False | Equality operator |
-# | children | List | False | List of child conditions. `condition_type` must be one of `ConditionAndBlock` or `ConditionOrBlock`. |
-# | command_sets | Set | False | Command sets enforce the specified list of commands that can be executed by a device administrator |
-# | profile | String | False | Device admin profiles control the initial login session of the device administrator |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_rule = try(local.defaults.ise.device_administration.device_admin_authorization_rule, {})
-
-  # Device Admin Authorization Rule (with defaults)
-  device_admin_authorization_rule = [for item in try(local.ise.device_administration.device_admin_authorization_rule, []) : merge(
-    local.defaults_device_admin_authorization_rule, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      children = [for i in try(item.children, []) : merge(
-        try(local.defaults_device_admin_authorization_rule.children, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authorization rule
-resource "ise_device_admin_authorization_rule" "device_admin_authorization_rule" {
-  for_each = { for item in try(local.device_admin_authorization_rule, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  name = try(each.value.name, null)
-  default = try(each.value.default, null)
-  rank = try(each.value.rank, null)
-  state = try(each.value.state, null)
-  condition_type = try(each.value.condition_type, null)
-  condition_id = try(each.value.condition_id, null)
-  condition_is_negate = try(each.value.condition_is_negate, null)
-  condition_attribute_name = try(each.value.condition_attribute_name, null)
-  condition_attribute_value = try(each.value.condition_attribute_value, null)
-  condition_dictionary_name = try(each.value.condition_dictionary_name, null)
-  condition_dictionary_value = try(each.value.condition_dictionary_value, null)
-  condition_operator = try(each.value.condition_operator, null)
-  children = try([for i in each.value.children : {
-    condition_type = try(i.condition_type, null),
-    id = try(i.id, null),
-    is_negate = try(i.is_negate, null),
-    attribute_name = try(i.attribute_name, null),
-    attribute_value = try(i.attribute_value, null),
-    dictionary_name = try(i.dictionary_name, null),
-    dictionary_value = try(i.dictionary_value, null),
-    operator = try(i.operator, null),
-    children = try(i.children, null)
-  }], null)
-  command_sets = try(each.value.command_sets, null)
-  profile = try(each.value.profile, null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN AUTHORIZATION RULE UPDATE RANKS 
-# ==================================================================
-#
-# | Attribute Name | Type | Required | Description |
-# |--------------|------|----------|-------------|
-# | policy_set_id | String | True | Policy set ID |
-# | rules | List | False |  |
-#
-
-locals {
-  # Get defaults from configuration or empty map if not present
-  defaults_device_admin_authorization_rule_update_ranks = try(local.defaults.ise.device_administration.device_admin_authorization_rule_update_ranks, {})
-
-  # Device Admin Authorization Rule Update Ranks (with defaults)
-  device_admin_authorization_rule_update_ranks = [for item in try(local.ise.device_administration.device_admin_authorization_rule_update_ranks, []) : merge(
-    local.defaults_device_admin_authorization_rule_update_ranks, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-      rules = [for i in try(item.rules, []) : merge(
-        try(local.defaults_device_admin_authorization_rule_update_ranks.rules, {}),
-        i
-      )]
-    }
-  )]
-}
-
-# Create device admin authorization rule update ranks
-resource "ise_device_admin_authorization_rule_update_ranks" "device_admin_authorization_rule_update_ranks" {
-  for_each = { for item in try(local.device_admin_authorization_rule_update_ranks, []) : item.name => item }
-
-  # General attributes
-  policy_set_id = try(each.value.policy_set_id, null)
-  rules = try([for i in each.value.rules : {
-    id = try(i.id, null),
-    rank = try(i.rank, null)
-  }], null)
-}
-#
-# ==================================================================
-# DEVICE ADMIN TIME AND DATE CONDITION 
+# DEVICE ADMIN TIME AND DATE CONDITION
 # ==================================================================
 #
 # | Attribute Name | Type | Required | Description |
@@ -963,36 +1312,114 @@ resource "ise_device_admin_authorization_rule_update_ranks" "device_admin_author
 # | exception_start_time | String | False | Exception start time |
 # | exception_end_time | String | False | Exception end time |
 #
+# YAML: ise.device_administration.device_admin_time_and_date_condition (list, objects identified by name)
+#
 
 locals {
-  # Get defaults from configuration or empty map if not present
+  # Defaults for device admin time and date condition (module defaults merged with user defaults)
   defaults_device_admin_time_and_date_condition = try(local.defaults.ise.device_administration.device_admin_time_and_date_condition, {})
 
-  # Device Admin Time And Date Condition (with defaults)
+  # Device admin time and date condition objects with defaults
   device_admin_time_and_date_condition = [for item in try(local.ise.device_administration.device_admin_time_and_date_condition, []) : merge(
-    local.defaults_device_admin_time_and_date_condition, # defaults
-    item, # original item
-    { # Nested merges for complex attributes
-    }
+    local.defaults_device_admin_time_and_date_condition,
+    item
   )]
 }
 
-# Create device admin time and date condition
 resource "ise_device_admin_time_and_date_condition" "device_admin_time_and_date_condition" {
-  for_each = { for item in try(local.device_admin_time_and_date_condition, []) : item.name => item }
+  for_each = { for item in local.device_admin_time_and_date_condition : item.name => item }
 
-  # General attributes
-  name = try(each.value.name, null)
-  description = try(each.value.description, null)
-  is_negate = try(each.value.is_negate, null)
-  week_days = try(each.value.week_days, null)
-  week_days_exception = try(each.value.week_days_exception, null)
-  start_date = try(each.value.start_date, null)
-  end_date = try(each.value.end_date, null)
+  name                 = try(each.value.name, null)
+  description          = try(each.value.description, null)
+  is_negate            = try(each.value.is_negate, null)
+  week_days            = try(each.value.week_days, null)
+  week_days_exception  = try(each.value.week_days_exception, null)
+  start_date           = try(each.value.start_date, null)
+  end_date             = try(each.value.end_date, null)
   exception_start_date = try(each.value.exception_start_date, null)
-  exception_end_date = try(each.value.exception_end_date, null)
-  start_time = try(each.value.start_time, null)
-  end_time = try(each.value.end_time, null)
+  exception_end_date   = try(each.value.exception_end_date, null)
+  start_time           = try(each.value.start_time, null)
+  end_time             = try(each.value.end_time, null)
   exception_start_time = try(each.value.exception_start_time, null)
-  exception_end_time = try(each.value.exception_end_time, null)
+  exception_end_time   = try(each.value.exception_end_time, null)
+}
+
+#
+# ==================================================================
+# TACACS COMMAND SET
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the TACACS command set |
+# | description | String | False | Description |
+# | permit_unmatched | Bool | False | Permit unmatched commands |
+# | commands | List | False |  |
+#
+# YAML: ise.device_administration.tacacs_command_set (list, objects identified by name)
+#
+
+locals {
+  # Defaults for tacacs command set (module defaults merged with user defaults)
+  defaults_tacacs_command_set = try(local.defaults.ise.device_administration.tacacs_command_set, {})
+
+  # Tacacs command set objects with defaults
+  tacacs_command_set = [for item in try(local.ise.device_administration.tacacs_command_set, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_tacacs_command_set : k => v if !contains(["commands"], k) },
+    item,
+    { for k in ["commands"] : k => [for i in item[k] : merge(try(local.defaults_tacacs_command_set[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_tacacs_command_set" "tacacs_command_set" {
+  for_each = { for item in local.tacacs_command_set : item.name => item }
+
+  name             = try(each.value.name, null)
+  description      = try(each.value.description, null)
+  permit_unmatched = try(each.value.permit_unmatched, null)
+  commands = try(each.value.commands, null) == null ? null : [for i1 in each.value.commands : {
+    grant     = try(i1.grant, null)
+    command   = try(i1.command, null)
+    arguments = try(i1.arguments, null)
+  }]
+}
+
+#
+# ==================================================================
+# TACACS PROFILE
+# ==================================================================
+#
+# | Attribute Name | Type | Required | Description |
+# |--------------|------|----------|-------------|
+# | name | String | True | The name of the TACACS profile |
+# | description | String | False | Description |
+# | session_attributes | List | False |  |
+#
+# YAML: ise.device_administration.tacacs_profile (list, objects identified by name)
+#
+
+locals {
+  # Defaults for tacacs profile (module defaults merged with user defaults)
+  defaults_tacacs_profile = try(local.defaults.ise.device_administration.tacacs_profile, {})
+
+  # Tacacs profile objects with defaults
+  tacacs_profile = [for item in try(local.ise.device_administration.tacacs_profile, []) : merge(
+    # defaults of nested lists apply to each list item
+    { for k, v in local.defaults_tacacs_profile : k => v if !contains(["session_attributes"], k) },
+    item,
+    { for k in ["session_attributes"] : k => [for i in item[k] : merge(try(local.defaults_tacacs_profile[k], {}), i)] if try(item[k], null) != null }
+  )]
+}
+
+resource "ise_tacacs_profile" "tacacs_profile" {
+  for_each = { for item in local.tacacs_profile : item.name => item }
+
+  name        = try(each.value.name, null)
+  description = try(each.value.description, null)
+  session_attributes = try(each.value.session_attributes, null) == null ? null : [for i1 in each.value.session_attributes : {
+    type  = try(i1.type, null)
+    name  = try(i1.name, null)
+    value = try(i1.value, null)
+  }]
 }
