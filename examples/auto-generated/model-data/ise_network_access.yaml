@@ -267,7 +267,7 @@ ise:
         value: value1
       data_type: STRING
       description: My custom dictionary attribute
-      dictionary_name: CustomDict
+      dictionary_name: Dict1
       direction_type: BOTH
       internal_name: Custom-Attr
       name: Custom-Attr

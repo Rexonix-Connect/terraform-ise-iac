@@ -134,6 +134,14 @@ resources:
         when: { attribute_name: EndPointPolicy }
         recursive: true
 
+  network_access_dictionary_attribute:
+    key: [dictionary_name, name]
+    references:
+      # the dictionary's ID is its name; the reference orders creation
+      dictionary_name:
+        target: network_access_dictionary
+        name: dictionary_name
+
   network_access_policy_set:
     references:
       condition_id: &network_access_condition_reference

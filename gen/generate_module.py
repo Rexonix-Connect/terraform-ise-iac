@@ -24,16 +24,6 @@ from typing import Any, Dict, Iterator, List, Optional, Set, Tuple
 
 # Paths
 SCRIPT_DIR: Path = Path(os.path.dirname(os.path.realpath(__file__)))
-#
-SENSITIVE_ATTRIBUTES_REGEXP: re.Pattern = re.compile(
-    r"^("
-    r".*password|"
-    r".*key|"
-    r".*shared_secret|"
-    r".*username|"
-    r".*snmp.*community"
-    r")$"
-)
 # Provider source code
 PROVIDER_DIR: Path = SCRIPT_DIR / "terraform-provider-ise"
 DEFAULT_PROVIDER_SOURCE_TYPE: str = "git"
@@ -163,11 +153,12 @@ def is_named_attribute(attr: Dict[str, Any]) -> bool:
 
 
 def is_sensitive_attribute(attr: Dict[str, Any]) -> bool:
-    """Check if the attribute is sensitive based on its name."""
-    if SENSITIVE_ATTRIBUTES_REGEXP.match(attr["name"]) is not None:
-        logger.debug(f"Attribute {attr['name']} is considered sensitive.")
-        return True
-    return False
+    """Check if the attribute is a secret.
+
+    Matches the provider, which marks the secrets with a write-only variant
+    (write_only_tf) as sensitive. Marking other attributes sensitive in the
+    module would make Terraform update imported objects just to add the mark."""
+    return bool(attr.get("write_only_tf", False))
 
 
 def process_attributes(
@@ -716,7 +707,9 @@ def render_resource(resource: Resource, env: Environment) -> str:
         resource=resource,
         rows=documentation_rows(resource),
         nested_attributes=[a["name"] for a in resource.attributes if a["nested_attributes"]],
-        ignore_changes=[a["name"] for a in resource.attributes if a["ignore_changes"]],
+        # rank is set by the bulk rank resource, an import reads it into state
+        ignore_changes=[a["name"] for a in resource.attributes if a["ignore_changes"]]
+        + (["rank"] if resource.rank_attribute else []),
         key=key_expr(resource, "item"),
         tiers=tiers,
         self_reference_names=[
@@ -1208,6 +1201,18 @@ def generate_example_model_files(resources: Dict[str, Resource]) -> None:
         if "name" in resource.key and "name" not in example:
             example["name"] = resource.name.replace("_", " ").title().replace(" ", "")
         examples[resource.name] = example
+
+    # resources sharing an API path (e.g. RADIUS and TACACS allowed protocols)
+    # need different names, ISE rejects a second object with the same name
+    names_by_endpoint: Dict[Tuple[Any, Any], str] = {}
+    for resource in resources.values():
+        example = examples[resource.name]
+        if "name" not in example:
+            continue
+        endpoint = (resource.definition.get("rest_endpoint"), example["name"])
+        if endpoint in names_by_endpoint:
+            example["name"] = f"{example['name']}-{resource.name.rsplit('_', 1)[-1]}"
+        names_by_endpoint[endpoint] = resource.name
 
     # Refer to other example objects by name where they are managed by the module,
     # so that the example is self-contained

@@ -18,4 +18,8 @@
 - Add the `ids` output with the IDs of the managed objects
 - Add the `write_default_values_file` input to write all default values to a file
 - Add a weekly Provider Update workflow that regenerates the module for a newer provider release and opens a pull request
+- Mark only the secrets the provider marks sensitive (attributes with a write-only variant). Other attributes matched by name before (`change_password`, SNMP and TrustSec usernames, `snmp_ro_community`, dictionary `allowed_values.key`) are no longer marked, so imported objects plan without changes; `snmp_ro_community` now shows in plans, as ISE returns it anyway
+- Ignore `rank` on ranked rules and policy sets: the bulk rank resources set it, and an import reads it
+- Key network access dictionary attributes by `dictionary_name/name`, and refer to the dictionary by name so it is created before its attributes
+- Auto-generated example: objects of resources sharing an API path get different names
 - Generator: command line options for the provider source, release and git ref, a fixed local provider source, stable output order, removal of stale generated files and `terraform fmt` of generated files

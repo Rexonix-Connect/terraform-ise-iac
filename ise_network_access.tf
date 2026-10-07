@@ -459,6 +459,10 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
   if_auth_fail         = try(each.value.if_auth_fail, null)
   if_process_fail      = try(each.value.if_process_fail, null)
   if_user_not_found    = try(each.value.if_user_not_found, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -610,6 +614,10 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -756,6 +764,10 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -904,6 +916,10 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
   }]
   profiles       = try(each.value.profiles, null)
   security_group = try(each.value.security_group, null)
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 
@@ -1440,6 +1456,38 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
   dictionary_attr_type = try(each.value.dictionary_attr_type, null)
 }
 
+
+#
+# ------------------------------------------------------------------
+# NETWORK ACCESS DICTIONARY REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network access dictionary objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_access_dictionary_referenced_names = distinct(compact(flatten([
+    [for item in local.network_access_dictionary_attribute : [for v0 in [item] : try(v0.dictionary_name, null) if !can(regex(local.id_regexp, v0.dictionary_name))]],
+  ])))
+  network_access_dictionary_managed_names   = [for item in local.network_access_dictionary : item.name]
+  network_access_dictionary_unmanaged_names = [for n in local.network_access_dictionary_referenced_names : n if !contains(local.network_access_dictionary_managed_names, n)]
+}
+
+data "ise_network_access_dictionary" "network_access_dictionary" {
+  for_each = toset(local.network_access_dictionary_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_access_dictionary_lookup_ids = { for k, v in data.ise_network_access_dictionary.network_access_dictionary : k => v.id }
+  network_access_dictionary_ids = merge(
+    local.network_access_dictionary_lookup_ids,
+    { for k, v in ise_network_access_dictionary.network_access_dictionary : k => v.id },
+  )
+}
+
 #
 # ==================================================================
 # NETWORK ACCESS DICTIONARY ATTRIBUTE
@@ -1447,7 +1495,7 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
 #
 # | Attribute Name | Type | Required | Description |
 # |--------------|------|----------|-------------|
-# | dictionary_name | String | False | The name of the dictionary the attribute belongs to |
+# | dictionary_name | String | False | The name of the dictionary the attribute belongs to; name of the referenced network access dictionary instead of its ID |
 # | name | String | True | The dictionary attribute name |
 # | description | String | False | The description of the dictionary attribute |
 # | data_type | String | True | The data type for the dictionary attribute |
@@ -1455,7 +1503,7 @@ resource "ise_network_access_dictionary" "network_access_dictionary" {
 # | internal_name | String | False | The internal name of the dictionary attribute |
 # | allowed_values | List | False | List of allowed values for the attribute |
 #
-# YAML: ise.network_access.network_access_dictionary_attribute (list, objects identified by name)
+# YAML: ise.network_access.network_access_dictionary_attribute (list, objects identified by dictionary_name/name)
 #
 
 locals {
@@ -1472,16 +1520,16 @@ locals {
 }
 
 resource "ise_network_access_dictionary_attribute" "network_access_dictionary_attribute" {
-  for_each = { for item in local.network_access_dictionary_attribute : item.name => item }
+  for_each = { for item in local.network_access_dictionary_attribute : format("%s/%s", try(item.dictionary_name, item.dictionary_name, ""), item.name) => item }
 
-  dictionary_name = try(each.value.dictionary_name, null)
+  dictionary_name = try(each.value.dictionary_name, null) != null && !can(regex(local.id_regexp, each.value.dictionary_name)) ? local.network_access_dictionary_ids[each.value.dictionary_name] : try(each.value.dictionary_name, null)
   name            = try(each.value.name, null)
   description     = try(each.value.description, null)
   data_type       = try(each.value.data_type, null)
   direction_type  = try(each.value.direction_type, null)
   internal_name   = try(each.value.internal_name, null)
   allowed_values = try(each.value.allowed_values, null) == null ? null : [for i1 in each.value.allowed_values : {
-    key   = sensitive(try(i1.key, null))
+    key   = try(i1.key, null)
     value = try(i1.value, null)
   }]
 }
@@ -1607,6 +1655,10 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
       }]
     }]
   }]
+
+  lifecycle {
+    ignore_changes = [rank]
+  }
 }
 
 

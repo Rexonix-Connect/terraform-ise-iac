@@ -620,7 +620,7 @@ resource "ise_internal_user" "internal_user" {
 
   name                   = try(each.value.name, null)
   password               = sensitive(try(each.value.password, null))
-  change_password        = sensitive(try(each.value.change_password, null))
+  change_password        = try(each.value.change_password, null)
   email                  = try(each.value.email, null)
   account_name_alias     = try(each.value.account_name_alias, null)
   enable_password        = sensitive(try(each.value.enable_password, null))

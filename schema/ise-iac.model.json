@@ -8048,7 +8048,7 @@
         {
           "name": "change_password",
           "type": "Bool",
-          "sensitive": true,
+          "sensitive": false,
           "write_only": false,
           "model_name": "changePassword",
           "data_path": [
@@ -12495,6 +12495,7 @@
       ],
       "singleton": false,
       "key": [
+        "dictionary_name",
         "name"
       ],
       "rank": null,
@@ -12573,7 +12574,7 @@
             {
               "name": "key",
               "type": "String",
-              "sensitive": true,
+              "sensitive": false,
               "write_only": false,
               "model_name": "key"
             },
@@ -12588,7 +12589,19 @@
         }
       ],
       "defaults": {},
-      "references": [],
+      "references": [
+        {
+          "attr": "dictionary_name",
+          "lists": [],
+          "recursive": false,
+          "target": "network_access_dictionary",
+          "name": "dictionary_name",
+          "when": {},
+          "comma_list": false,
+          "in_place": true,
+          "name_lookup": true
+        }
+      ],
       "api": {
         "rest_endpoint": "/api/v1/policy/network-access/dictionaries/%v/attribute",
         "id_path": "response.name",
@@ -13853,7 +13866,7 @@
         {
           "name": "snmp_ro_community",
           "type": "String",
-          "sensitive": true,
+          "sensitive": false,
           "write_only": false,
           "model_name": "roCommunity",
           "data_path": [
@@ -13880,7 +13893,7 @@
         {
           "name": "snmp_username",
           "type": "String",
-          "sensitive": true,
+          "sensitive": false,
           "write_only": false,
           "model_name": "username",
           "data_path": [
@@ -14014,7 +14027,7 @@
         {
           "name": "trustsec_rest_api_username",
           "type": "String",
-          "sensitive": true,
+          "sensitive": false,
           "write_only": false,
           "model_name": "restApiUsername",
           "data_path": [
@@ -14062,7 +14075,7 @@
         {
           "name": "trustsec_exec_mode_username",
           "type": "String",
-          "sensitive": true,
+          "sensitive": false,
           "write_only": false,
           "model_name": "execModeUsername",
           "data_path": [
