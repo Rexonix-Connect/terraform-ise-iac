@@ -50,7 +50,9 @@ ise:
 
 Values under unknown YAML keys would be ignored, so the plan stops with a list of
 unknown keys (typos, or keys of a newer module version), for example
-`ise.network_resources.network_device[0].shared_secret`.
+`ise.network_resources.network_device[0].shared_secret`. The YAML may have only
+the root keys `ise` and `defaults`, so YAML directories cannot be shared with
+other modules.
 
 `schema/ise-iac.schema.json` is a JSON Schema of the YAML model. It gives
 completion and checks in editors, e.g. with the YAML extension for VS Code:
@@ -165,8 +167,10 @@ pip install -r gen/requirements.txt
 
 To move to a new provider release, change `gen/PROVIDER_VERSION` and regenerate.
 The Provider Update workflow does this every week: it opens a pull request when
-CiscoDevNet releases a newer provider. It needs "Allow GitHub Actions to create
-and approve pull requests" in the repository settings. With a
+CiscoDevNet releases a newer provider. It generates and checks the module with
+read-only access, and only a separate job that runs no provider code gets write
+access to push the branch and open the pull request. It needs "Allow GitHub
+Actions to create and approve pull requests" in the repository settings. With a
 `PROVIDER_UPDATE_TOKEN` secret (a token with contents and pull request write
 access) the Tests workflow also runs on its pull requests.
 

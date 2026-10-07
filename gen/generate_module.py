@@ -913,11 +913,16 @@ def yaml_key_checks(resource: Resource) -> List[str]:
         f'try([for k in keys(try({defaults}, {{}})) : "defaults.{label}.${{k}}" '
         f"if !contains({keys_of(())}, k)], [])"
     )
-    for lists, _ in nested_lists(resource):
+    for lists, attrs in nested_lists(resource):
         if len(lists) == 1:
+            # defaults of deeper nested lists are not applied
+            deeper = json.dumps(sorted(a["name"] for a in attrs if a["nested_attributes"]))
+            unknown = f"!contains({keys_of(lists)}, k)"
+            if deeper != "[]":
+                unknown = f"{unknown} || contains({deeper}, k)"
             checks.append(
                 f"try([for k in keys(try({defaults}.{lists[0]}, {{}})) : "
-                f'"defaults.{label}.{lists[0]}.${{k}}" if !contains({keys_of(lists)}, k)], [])'
+                f'"defaults.{label}.{lists[0]}.${{k}}" if {unknown}], [])'
             )
     return checks
 
@@ -974,10 +979,13 @@ def json_schema_object(
 ) -> Dict[str, Any]:
     """JSON Schema of a YAML object of a resource at a nested list path.
 
-    For defaults, nested lists are a single object applied to each list item."""
+    For defaults, nested lists are a single object applied to each list item. The
+    module applies defaults to the items of the resource's own nested lists only."""
     properties: Dict[str, Any] = {}
     for attr in attrs:
         description = attr.get("description", "")
+        if attr["nested_attributes"] and defaults and lists:
+            continue
         if attr["nested_attributes"]:
             item = json_schema_object(
                 resource, lists + (attr["name"],), attr["nested_attributes"], defaults
@@ -1057,10 +1065,12 @@ def generate_schema_files(
         "$comment": comment,
         "title": "terraform-ise-iac YAML model",
         "type": "object",
+        "additionalProperties": False,
         "properties": {
             "ise": section_schema(sections),
             "defaults": {
                 "type": "object",
+                "additionalProperties": False,
                 "properties": {"ise": section_schema(default_sections)},
             },
         },
@@ -1096,6 +1106,20 @@ def generate_schema_files(
             for a in attrs
             if "value" in a and "model_name" in a
         ]
+        # without an ID path, the provider's object ID is the value of the first
+        # identifying attribute (e.g. names of dictionaries and repositories)
+        id_attr = next((a for a in attrs if a.get("id")), None)
+        if (
+            "id_path" not in definition
+            and "put_id_query_path" not in definition
+            and not str(definition.get("rest_endpoint", "")).startswith("/ers/")
+            and id_attr
+            and not id_attr.get("reference")
+            and "model_name" in id_attr
+        ):
+            info["id_attribute"] = id_attr.get("response_data_path") or ".".join(
+                list(id_attr.get("data_path", [])) + [id_attr["model_name"]]
+            )
         if any(a.get("reference") for a in attrs):
             info["import_parts"] = [
                 a["name"] for a in attrs if a.get("reference") or a.get("id")

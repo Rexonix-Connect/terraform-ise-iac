@@ -17,6 +17,8 @@ locals {
   # YAML keys the module does not know, usually typos. Values under unknown
   # keys would be ignored silently, so they stop the plan.
   unknown_yaml_keys = flatten([
+    try([for k in keys(local.model) : k if !contains(["ise", "defaults"], k)], []),
+    try([for k in keys(local.model.defaults) : "defaults.${k}" if k != "ise"], []),
     [for s in keys(try(local.ise, {})) : "ise.${s}" if !contains(keys(local.yaml_sections), s)],
     [for s, r in try(local.ise, {}) : [for k in try(keys(r), []) : "ise.${s}.${k}" if !contains(local.yaml_sections[s], k)] if contains(keys(local.yaml_sections), s)],
     [for s in keys(try(local.model.defaults.ise, {})) : "defaults.ise.${s}" if !contains(keys(local.yaml_sections), s)],

@@ -7832,6 +7832,7 @@
       "api": {
         "rest_endpoint": "/api/v1/endpoint-custom-attribute",
         "constants": [],
+        "id_attribute": "attributeName",
         "import_parts": [
           "id"
         ]
@@ -12482,6 +12483,7 @@
         "rest_endpoint": "/api/v1/policy/network-access/dictionaries",
         "data_source_name_query": true,
         "constants": [],
+        "id_attribute": "name",
         "import_parts": [
           "id"
         ]
@@ -14348,6 +14350,7 @@
         "rest_endpoint": "/api/v1/repository",
         "data_source_name_query": true,
         "constants": [],
+        "id_attribute": "name",
         "import_parts": [
           "id"
         ]
@@ -15746,6 +15749,7 @@
         "put_no_id": true,
         "no_data_source": true,
         "constants": [],
+        "id_attribute": "matrixMode",
         "import_parts": [
           "id"
         ]
