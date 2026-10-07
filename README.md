@@ -105,6 +105,12 @@ without rank and then sets all ranks of a policy set at once
 (`ise_*_update_ranks` resources). Objects without `rank` and default
 objects keep their position.
 
+`manage_ranks = false` turns this off: ranks in YAML are accepted but not
+applied, and ISE keeps its order. Use it with ISE provider 0.5.0, whose bulk
+rank resources can copy the conditions of one rule into the next rule while
+they set ranks (they reuse the previous rule's data when a rule has no
+condition children).
+
 ### Secrets
 
 ISE does not return secrets (passwords, shared secrets, keys), so the YAML value

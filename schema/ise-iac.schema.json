@@ -12605,7 +12605,7 @@
                   }
                 },
                 "required": [
-                  "name"
+                  "sxp_vpn_name"
                 ]
               }
             },

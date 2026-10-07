@@ -472,13 +472,14 @@ resource "ise_network_access_authentication_rule" "network_access_authentication
 # ------------------------------------------------------------------
 #
 # Ranks of network access authentication rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Network access authentication rule objects with a rank, grouped by policy_set_name
   network_access_authentication_rule_ranks = {
-    for item in local.network_access_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.network_access_authentication_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -627,13 +628,14 @@ resource "ise_network_access_authorization_exception_rule" "network_access_autho
 # ------------------------------------------------------------------
 #
 # Ranks of network access authorization exception rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Network access authorization exception rule objects with a rank, grouped by policy_set_name
   network_access_authorization_exception_rule_ranks = {
-    for item in local.network_access_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.network_access_authorization_exception_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -777,12 +779,13 @@ resource "ise_network_access_authorization_global_exception_rule" "network_acces
 # ------------------------------------------------------------------
 #
 # Ranks of network access authorization global exception rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Network access authorization global exception rule objects with a rank
-  network_access_authorization_global_exception_rule_ranks = [for item in local.network_access_authorization_global_exception_rule : item if try(item.rank, null) != null && !try(item.default, false)]
+  network_access_authorization_global_exception_rule_ranks = [for item in local.network_access_authorization_global_exception_rule : item if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)]
 }
 
 resource "ise_network_access_authorization_global_exception_rule_update_ranks" "network_access_authorization_global_exception_rule_update_ranks" {
@@ -929,13 +932,14 @@ resource "ise_network_access_authorization_rule" "network_access_authorization_r
 # ------------------------------------------------------------------
 #
 # Ranks of network access authorization rule objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Network access authorization rule objects with a rank, grouped by policy_set_name
   network_access_authorization_rule_ranks = {
-    for item in local.network_access_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if try(item.rank, null) != null && !try(item.default, false)
+    for item in local.network_access_authorization_rule : try(item.policy_set_name, item.policy_set_id) => item... if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)
   }
 }
 
@@ -1668,12 +1672,13 @@ resource "ise_network_access_policy_set" "network_access_policy_set" {
 # ------------------------------------------------------------------
 #
 # Ranks of network access policy set objects are applied in bulk after the
-# objects exist. Objects without a rank and default objects are left as they are.
+# objects exist, if var.manage_ranks is true. Objects without a rank and
+# default objects are left as they are.
 #
 
 locals {
   # Network access policy set objects with a rank
-  network_access_policy_set_ranks = [for item in local.network_access_policy_set : item if try(item.rank, null) != null && !try(item.default, false)]
+  network_access_policy_set_ranks = [for item in local.network_access_policy_set : item if var.manage_ranks && try(item.rank, null) != null && !try(item.default, false)]
 }
 
 resource "ise_network_access_policy_set_update_ranks" "network_access_policy_set_update_ranks" {
