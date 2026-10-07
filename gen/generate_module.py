@@ -8,6 +8,7 @@ module-specific customizations in gen/overrides.yaml.
 """
 
 import copy
+import json
 import os
 import shutil
 import yaml
@@ -39,8 +40,13 @@ DEFAULT_PROVIDER_SOURCE_TYPE: str = "git"
 DEFAULT_PROVIDER_SOURCE_PATH: str = (
     "https://github.com/CiscoDevNet/terraform-provider-ise"
 )
-# Provider release the module is generated for (git tag v<version>)
-DEFAULT_PROVIDER_VERSION: str = "0.5.0"
+# Provider release the module is generated for (git tag v<version>), kept in a
+# file so that the provider update workflow can bump it
+PROVIDER_VERSION_FILE: Path = SCRIPT_DIR / "PROVIDER_VERSION"
+DEFAULT_PROVIDER_VERSION: str = PROVIDER_VERSION_FILE.read_text().strip()
+# Pattern of ISE object IDs (local.id_regexp in main.tf); values of in-place
+# references that match it are kept as IDs
+ID_REGEXP_LOCAL: str = "local.id_regexp"
 # Module customizations on top of the provider definitions
 OVERRIDES_FILE: Path = SCRIPT_DIR / "overrides.yaml"
 # File generation
@@ -55,6 +61,19 @@ DEFAULT_RESOURCE_TEMPLATE: str = "resource_default.tf.j2"
 REFERENCES_TEMPLATE: str = "references.tf.j2"
 RANKS_TEMPLATE: str = "ranks.tf.j2"
 VERSIONS_TEMPLATE: str = "versions.tf.j2"
+VALIDATION_TEMPLATE: str = "validation.tf.j2"
+IDS_TEMPLATE: str = "ids.tf.j2"
+# Machine-readable description of the module for editors and tools (extractor)
+SCHEMA_DIR: Path = MODULE_DIR / "schema"
+JSON_SCHEMA_FILENAME: str = "ise-iac.schema.json"
+MODEL_FILENAME: str = "ise-iac.model.json"
+JSON_TYPES: Dict[str, Any] = {
+    # Terraform converts numbers and booleans to strings, e.g. mask: 32
+    "String": ["string", "number", "boolean"],
+    "Int64": "integer",
+    "Float64": "number",
+    "Bool": "boolean",
+}
 GENERATE_FILE_BANNER: str = """#
 # ################################################################################
 #
@@ -289,6 +308,11 @@ class Reference:
     comma_list: bool = False
     name_lookup: bool = True  # unmanaged names are looked up in ISE
 
+    @property
+    def in_place(self) -> bool:
+        """The YAML key of the ID holds the name (or still the ID) itself."""
+        return self.name == self.attr
+
     def matches(self, lists: Tuple[str, ...]) -> bool:
         """Check if the reference applies to items of the given nested list path."""
         if not self.recursive or not self.lists:
@@ -338,22 +362,26 @@ def parse_references(
 ) -> List[Reference]:
     """Parse the references section of a resource override"""
     parsed = []
-    for path, spec in (references or {}).items():
+    for path, specs in (references or {}).items():
         *lists, attr = path.split(".")
-        fmt = spec.get("format", "single")
-        if fmt not in ("single", "comma_list"):
-            raise ValueError(f"{resource_name}.{path}: unsupported format {fmt}")
-        parsed.append(
-            Reference(
-                attr=attr,
-                lists=tuple(lists),
-                target=spec["target"],
-                name=spec["name"],
-                when=dict(spec.get("when", {})),
-                recursive=spec.get("recursive", False),
-                comma_list=fmt == "comma_list",
+        # several references on one attribute are told apart by their when keys
+        for spec in specs if isinstance(specs, list) else [specs]:
+            fmt = spec.get("format", "single")
+            if fmt not in ("single", "comma_list"):
+                raise ValueError(f"{resource_name}.{path}: unsupported format {fmt}")
+            parsed.append(
+                Reference(
+                    attr=attr,
+                    lists=tuple(lists),
+                    target=spec["target"],
+                    name=spec["name"],
+                    when=dict(spec.get("when", {})),
+                    recursive=spec.get("recursive", False),
+                    comma_list=fmt == "comma_list",
+                )
             )
-        )
+            if parsed[-1].in_place and parsed[-1].comma_list:
+                raise ValueError(f"{resource_name}.{path}: in-place comma_list")
     return parsed
 
 
@@ -485,28 +513,45 @@ def ids_local(target: str, consumer: Resource, tier: int) -> str:
 
 def when_condition(ref: Reference, src: str) -> str:
     """HCL condition under which a reference is resolved by name"""
-    conditions = [f"try({src}.{ref.attr}, null) == null"]
+    if ref.in_place:
+        # the value is a name unless it looks like an ID
+        conditions = [f"!can(regex({ID_REGEXP_LOCAL}, {src}.{ref.attr}))"]
+    else:
+        conditions = [f"try({src}.{ref.attr}, null) == null"]
     conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
     return " && ".join(conditions)
 
 
-def reference_expr(ref: Reference, src: str, ids: str) -> str:
-    """HCL expression resolving a reference: the ID if given, else the ID of the name"""
-    id_value = f"{src}.{ref.attr}"
-    name_value = f"{src}.{ref.name}"
-    conditions = [f"try({name_value}, null) != null"]
-    conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
-    if ref.comma_list:
-        resolved = f'join(",", sort([for n in {name_value} : {ids}[n]]))'
-    elif not ref.name_lookup:
-        # unmanaged names fail the precondition of the target's references
-        resolved = f"lookup({ids}, {name_value}, null)"
+def reference_expr(refs: List[Reference], src: str, ids: Dict[str, str]) -> str:
+    """HCL expression resolving the references of one attribute.
+
+    The ID is used if given, else the ID of the name given by the first reference
+    whose conditions match. ids maps reference targets to their name-to-ID locals."""
+    attr = refs[0].attr
+    id_value = f"{src}.{attr}"
+    if refs[0].in_place:
+        expr = f"try({id_value}, null)"
     else:
-        resolved = f"{ids}[{name_value}]"
-    return (
-        f"try({id_value}, null) != null ? {id_value} : "
-        f"{' && '.join(conditions)} ? {resolved} : null"
-    )
+        expr = "null"
+    for ref in reversed(refs):
+        name_value = f"{src}.{ref.name}"
+        target_ids = ids[ref.target]
+        conditions = [f"try({name_value}, null) != null"]
+        if ref.in_place:
+            conditions.append(when_condition(ref, src))
+        else:
+            conditions += [f'try({src}.{k}, null) == "{v}"' for k, v in ref.when.items()]
+        if ref.comma_list:
+            resolved = f'join(",", sort([for n in {name_value} : {target_ids}[n]]))'
+        elif not ref.name_lookup:
+            # unmanaged names fail the precondition of the target's references
+            resolved = f"lookup({target_ids}, {name_value}, null)"
+        else:
+            resolved = f"{target_ids}[{name_value}]"
+        expr = f"{' && '.join(conditions)} ? {resolved} : {expr}"
+    if not refs[0].in_place:
+        expr = f"try({id_value}, null) != null ? {id_value} : {expr}"
+    return expr
 
 
 def referenced_names_expr(ref: Reference, root: str, lists: Tuple[str, ...]) -> str:
@@ -534,16 +579,13 @@ def attribute_expr(
     indent: int,
 ) -> str:
     """HCL expression for a resource attribute read from the YAML object src"""
-    ref = next(
-        (
-            r
-            for r in resource.references
-            if r.attr == attr["name"] and r.matches(lists)
-        ),
-        None,
-    )
-    if ref is not None:
-        expr = reference_expr(ref, src, ids_local(ref.target, resource, tier))
+    refs = [
+        r for r in resource.references if r.attr == attr["name"] and r.matches(lists)
+    ]
+    if refs:
+        expr = reference_expr(
+            refs, src, {r.target: ids_local(r.target, resource, tier) for r in refs}
+        )
     elif attr["nested_attributes"]:
         var = f"i{len(lists) + 1}"
         pad = "  " * (indent + 1)
@@ -618,24 +660,36 @@ def documentation_rows(resource: Resource) -> List[Dict[str, Any]]:
                 f"applied through `ise_{resource.ranks['resource']}`",
             }
         )
-    seen = set()
+    rows_by_name = {row["name"]: row for row in rows}
     for ref in resource.references:
         name = ".".join(ref.lists + (ref.name,))
-        if name in seen or (not ref.lists and ref.name in {r["name"] for r in rows}):
+        target = ref.target.replace("_", " ")
+        when = "".join(f" (if `{k}` is `{v}`)" for k, v in ref.when.items())
+        if ref.in_place:
+            # the attribute itself accepts a name, note it on the attribute's row
+            row = rows_by_name.get(name)
+            if row is None:
+                row = {"name": name, "type": "String", "mandatory": False, "description": ""}
+                rows.append(row)
+                rows_by_name[name] = row
+            note = f"name of the referenced {target} instead of its ID{when}"
+            row["description"] = "; ".join(
+                part for part in (row["description"].rstrip(". "), note) if part
+            )
             continue
-        seen.add(name)
-        rows.append(
-            {
-                "name": name,
-                "type": "List" if ref.comma_list else "String",
-                "mandatory": False,
-                "description": (
-                    f"Name{'s' if ref.comma_list else ''} of the referenced "
-                    f"{ref.target.replace('_', ' ')}, alternative to `{ref.attr}`"
-                    + "".join(f" (if `{k}` is `{v}`)" for k, v in ref.when.items())
-                ),
-            }
-        )
+        if name in rows_by_name:
+            continue
+        row = {
+            "name": name,
+            "type": "List" if ref.comma_list else "String",
+            "mandatory": False,
+            "description": (
+                f"Name{'s' if ref.comma_list else ''} of the referenced {target}, "
+                f"alternative to `{ref.attr}`{when}"
+            ),
+        }
+        rows.append(row)
+        rows_by_name[name] = row
     return rows
 
 
@@ -714,7 +768,11 @@ def render_ranks(resource: Resource, env: Environment) -> str:
             f"try(item.{group_ref.name}, item.{group_ref.attr})" if group_ref else None
         ),
         group_value=(
-            reference_expr(group_ref, "each.value[0]", ids_local(group_ref.target, resource, 0))
+            reference_expr(
+                [group_ref],
+                "each.value[0]",
+                {group_ref.target: ids_local(group_ref.target, resource, 0)},
+            )
             if group_ref
             else None
         ),
@@ -748,7 +806,7 @@ def remove_generated_files() -> None:
     for tf_file in MODULE_DIR.glob("*.tf"):
         if tf_file.read_text().startswith(GENERATE_FILE_BANNER):
             tf_file.unlink()
-    for directory in (EXAMPLE_MODEL_DATA_DIR, EXAMPLE_DEFAULTS_DATA_DIR, DEFAULTS_DIR):
+    for directory in (EXAMPLE_MODEL_DATA_DIR, EXAMPLE_DEFAULTS_DATA_DIR, DEFAULTS_DIR, SCHEMA_DIR):
         if directory.exists():
             shutil.rmtree(directory)
 
@@ -804,6 +862,298 @@ def generate_versions_file(provider_version: str) -> None:
             provider_version=provider_version
         ),
     )
+
+
+def tier_resource_names(resource: Resource) -> List[str]:
+    """Terraform resource names of a module resource, one per tier"""
+    return [resource.name] + [f"{resource.name}_tier{t}" for t in range(1, resource.tiers)]
+
+
+def nested_lists(resource: Resource) -> List[Tuple[Tuple[str, ...], List[Dict[str, Any]]]]:
+    """All nested list paths of a resource with the attributes of their items"""
+    return [
+        (lists + (attr["name"],), attr["nested_attributes"])
+        for lists, attr in walk_attributes(resource.attributes)
+        if attr["nested_attributes"]
+    ]
+
+
+def yaml_keys(resource: Resource, lists: Tuple[str, ...], attrs: List[Dict[str, Any]]) -> List[str]:
+    """YAML keys an object of the resource accepts at a nested list path"""
+    keys = {attr["name"] for attr in attrs}
+    if not lists and resource.rank_attribute:
+        keys.add("rank")
+    for ref in resource.references:
+        if not ref.in_place and ref.matches(lists):
+            keys.add(ref.name)
+    return sorted(keys)
+
+
+def yaml_key_checks(resource: Resource) -> List[str]:
+    """HCL expressions listing unknown YAML keys of a resource and its defaults"""
+    category, name = resource.category, resource.name
+    label = f"ise.{category}.{name}"
+    if resource.singleton:
+        items, index = f"try([local.ise.{category}.{name}], [])", ""
+    else:
+        items, index = f"try(local.ise.{category}.{name}, [])", "[${i}]"
+    keys_of = lambda lists: f'local.yaml_keys["{".".join((category, name) + lists)}"]'
+
+    checks = [
+        f'try([for i, item in {items} : [for k in keys(item) : "{label}{index}.${{k}}" '
+        f"if !contains({keys_of(())}, k)]], [])"
+    ]
+    for lists, _ in nested_lists(resource):
+        path = "".join(f".{segment}[${{j{d + 1}}}]" for d, segment in enumerate(lists))
+        expr = (
+            f'[for k in keys(n{len(lists)}) : "{label}{index}{path}.${{k}}" '
+            f"if !contains({keys_of(lists)}, k)]"
+        )
+        for d in range(len(lists), 0, -1):
+            parent = "item" if d == 1 else f"n{d - 1}"
+            expr = f"[for j{d}, n{d} in try({parent}.{lists[d - 1]}, []) : {expr}]"
+        checks.append(f"try([for i, item in {items} : {expr}], [])")
+
+    # defaults apply to the resource and to each item of its nested lists
+    defaults = f"local.model.defaults.ise.{category}.{name}"
+    checks.append(
+        f'try([for k in keys(try({defaults}, {{}})) : "defaults.{label}.${{k}}" '
+        f"if !contains({keys_of(())}, k)], [])"
+    )
+    for lists, _ in nested_lists(resource):
+        if len(lists) == 1:
+            checks.append(
+                f"try([for k in keys(try({defaults}.{lists[0]}, {{}})) : "
+                f'"defaults.{label}.{lists[0]}.${{k}}" if !contains({keys_of(lists)}, k)], [])'
+            )
+    return checks
+
+
+def generate_validation_file(resources: Dict[str, Resource]) -> None:
+    """Generate the check for unknown YAML keys"""
+    keys: Dict[str, List[str]] = {}
+    sections: Dict[str, List[str]] = {}
+    checks: List[str] = []
+    for resource in resources.values():
+        sections.setdefault(resource.category, []).append(resource.name)
+        keys[f"{resource.category}.{resource.name}"] = yaml_keys(resource, (), resource.attributes)
+        for lists, attrs in nested_lists(resource):
+            keys[".".join((resource.category, resource.name) + lists)] = yaml_keys(
+                resource, lists, attrs
+            )
+        checks += yaml_key_checks(resource)
+    env = get_jinja_environment()
+    generate_file(
+        output_path=MODULE_DIR,
+        filename="validation.tf",
+        output_text=env.get_template(VALIDATION_TEMPLATE).render(
+            keys={k: json.dumps(v) for k, v in sorted(keys.items())},
+            sections={k: json.dumps(sorted(v)) for k, v in sorted(sections.items())},
+            checks=checks,
+        ),
+    )
+
+
+def generate_ids_file(resources: Dict[str, Resource]) -> None:
+    """Generate the output with the IDs of the objects the module manages"""
+    env = get_jinja_environment()
+    generate_file(
+        output_path=MODULE_DIR,
+        filename="ids.tf",
+        output_text=env.get_template(IDS_TEMPLATE).render(
+            resources=[
+                {
+                    "name": resource.name,
+                    "singleton": resource.singleton,
+                    "terraform_names": tier_resource_names(resource),
+                }
+                for resource in sorted(resources.values(), key=lambda r: r.name)
+            ]
+        ),
+    )
+
+
+def json_schema_object(
+    resource: Resource,
+    lists: Tuple[str, ...],
+    attrs: List[Dict[str, Any]],
+    defaults: bool = False,
+) -> Dict[str, Any]:
+    """JSON Schema of a YAML object of a resource at a nested list path.
+
+    For defaults, nested lists are a single object applied to each list item."""
+    properties: Dict[str, Any] = {}
+    for attr in attrs:
+        description = attr.get("description", "")
+        if attr["nested_attributes"]:
+            item = json_schema_object(
+                resource, lists + (attr["name"],), attr["nested_attributes"], defaults
+            )
+            schema = item if defaults else {"type": "array", "items": item}
+        elif attr["type"] in ("List", "Set"):
+            schema = {
+                "type": "array",
+                "items": {"type": JSON_TYPES.get(attr.get("element_type", "String"), "string")},
+            }
+        elif attr["type"] == "Map":
+            schema = {"type": "object", "additionalProperties": {"type": "string"}}
+        else:
+            schema = {"type": JSON_TYPES.get(attr["type"], "string")}
+            in_place = any(
+                r.in_place and r.attr == attr["name"] and r.matches(lists)
+                for r in resource.references
+            )
+            if "enum_values" in attr and not in_place:
+                schema["enum"] = attr["enum_values"]
+        if description:
+            schema["description"] = description
+        properties[attr["name"]] = schema
+    if not lists and resource.rank_attribute:
+        properties["rank"] = {
+            "type": "integer",
+            "description": resource.rank_attribute.get("description", "Rank"),
+        }
+    for ref in resource.references:
+        if ref.in_place or not ref.matches(lists) or ref.name in properties:
+            continue
+        target = ref.target.replace("_", " ")
+        properties[ref.name] = (
+            {"type": "array", "items": {"type": "string"}, "description": f"Names of the referenced {target}"}
+            if ref.comma_list
+            else {"type": "string", "description": f"Name of the referenced {target}"}
+        )
+    schema = {"type": "object", "additionalProperties": False, "properties": properties}
+    required = [k for k in resource.key if not lists and not defaults and k in properties]
+    if required and not resource.singleton:
+        schema["required"] = required
+    return schema
+
+
+def generate_schema_files(
+    definitions: Dict[str, Any],
+    resources: Dict[str, Resource],
+    defaults_data: Dict[str, Any],
+    provider_version: str,
+    overrides: Dict[str, Any],
+) -> None:
+    """Generate the JSON Schema of the YAML model and the module model for tools"""
+    comment = "Generated by gen/generate_module.py, do not edit."
+    sections: Dict[str, Any] = {}
+    default_sections: Dict[str, Any] = {}
+    for resource in resources.values():
+        item = json_schema_object(resource, (), resource.attributes)
+        sections.setdefault(resource.category, {})[resource.name] = (
+            item if resource.singleton else {"type": "array", "items": item}
+        )
+        default_sections.setdefault(resource.category, {})[resource.name] = json_schema_object(
+            resource, (), resource.attributes, defaults=True
+        )
+
+    def section_schema(content: Dict[str, Any]) -> Dict[str, Any]:
+        return {
+            "type": "object",
+            "additionalProperties": False,
+            "properties": {
+                section: {"type": "object", "additionalProperties": False, "properties": props}
+                for section, props in sorted(content.items())
+            },
+        }
+
+    json_schema = {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$comment": comment,
+        "title": "terraform-ise-iac YAML model",
+        "type": "object",
+        "properties": {
+            "ise": section_schema(sections),
+            "defaults": {
+                "type": "object",
+                "properties": {"ise": section_schema(default_sections)},
+            },
+        },
+    }
+
+    def model_attribute(attr: Dict[str, Any]) -> Dict[str, Any]:
+        model = {
+            "name": attr["name"],
+            "type": attr["type"],
+            "sensitive": attr["sensitive"],
+            "write_only": bool(attr.get("write_only", False)),
+        }
+        for key in ("element_type", "enum_values", "mandatory", "model_name", "data_path"):
+            if key in attr:
+                model[key] = attr[key]
+        if attr["nested_attributes"]:
+            model["attributes"] = [model_attribute(a) for a in attr["nested_attributes"]]
+        return model
+
+    def api(definition: Dict[str, Any]) -> Dict[str, Any]:
+        flags = (
+            "id_path", "put_create", "post_update", "no_read", "no_delete", "no_import",
+            "get_no_id", "put_no_id", "root_list", "data_source_name_query", "no_data_source",
+        )
+        info = {"rest_endpoint": definition.get("rest_endpoint")}
+        info.update({k: definition[k] for k in flags if k in definition})
+        # terraform import ID: references, identifying attributes, then the ID
+        attrs = [ensure_name_in_attribute(dict(a)) for a in definition.get("attributes", [])]
+        if any(a.get("reference") for a in attrs):
+            info["import_parts"] = [
+                a["name"] for a in attrs if a.get("reference") or a.get("id")
+            ] + ["id"]
+        else:
+            info["import_parts"] = ["id"]
+        return info
+
+    targets = {ref.target for r in resources.values() for ref in r.references}
+    model = {
+        "$comment": comment,
+        "provider": {"source": "CiscoDevNet/ise", "version": provider_version},
+        "self_reference_tiers": overrides.get("self_reference_tiers", 4),
+        "id_regexp": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+        "resources": {
+            resource.name: {
+                "category": resource.category,
+                "terraform_type": f"ise_{resource.name}",
+                "terraform_names": tier_resource_names(resource),
+                "singleton": resource.singleton,
+                "key": resource.key,
+                "rank": resource.ranks,
+                "attributes": [model_attribute(a) for a in resource.attributes],
+                "defaults": defaults_data["defaults"]["ise"][resource.category].get(
+                    resource.name, {}
+                ),
+                "references": [
+                    {
+                        "attr": ref.attr,
+                        "lists": list(ref.lists),
+                        "recursive": ref.recursive,
+                        "target": ref.target,
+                        "name": ref.name,
+                        "when": ref.when,
+                        "comma_list": ref.comma_list,
+                        "in_place": ref.in_place,
+                        "name_lookup": ref.name_lookup,
+                    }
+                    for ref in resource.references
+                ],
+                "api": api(resource.definition),
+            }
+            for resource in sorted(resources.values(), key=lambda r: r.name)
+        },
+        # objects referred to by name that the module does not create
+        "lookup_only": {
+            target: {"api": api(definitions[target])}
+            for target in sorted(targets)
+            if target not in resources
+        },
+    }
+
+    SCHEMA_DIR.mkdir(parents=True, exist_ok=True)
+    for filename, content in ((JSON_SCHEMA_FILENAME, json_schema), (MODEL_FILENAME, model)):
+        with (SCHEMA_DIR / filename).open("w") as f:
+            json.dump(content, f, indent=2, sort_keys=False)
+            f.write("\n")
+        logger.info(f"Generated schema/{filename}")
 
 
 def example_value(attr: Dict[str, Any], nested: bool = False) -> Any:
@@ -1005,7 +1355,8 @@ def main(
     logger.info("Loading YAML definitions from provider repository...")
     definitions = load_yaml_definitions(provider_dir)
     logger.info("Processing resource definitions...")
-    resources = build_resources(definitions, load_overrides(OVERRIDES_FILE))
+    overrides = load_overrides(OVERRIDES_FILE)
+    resources = build_resources(definitions, overrides)
 
     # Remove files of the previous generation
     remove_generated_files()
@@ -1014,6 +1365,8 @@ def main(
     logger.info("Generating module files...")
     generate_module_files(definitions, resources)
     generate_versions_file(provider_version)
+    generate_validation_file(resources)
+    generate_ids_file(resources)
 
     # Generate example model files
     logger.info("Generating example model files...")
@@ -1026,6 +1379,10 @@ def main(
     # Generate defaults files
     logger.info("Generating defaults files...")
     generate_defaults_files(defaults_data)
+
+    # Generate JSON Schema and module model
+    logger.info("Generating schema files...")
+    generate_schema_files(definitions, resources, defaults_data, provider_version, overrides)
 
     if fmt:
         format_terraform_files()

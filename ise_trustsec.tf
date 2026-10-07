@@ -294,7 +294,7 @@ resource "ise_trustsec_egress_push_matrix" "trustsec_egress_push_matrix" {
 # |--------------|------|----------|-------------|
 # | name | String | True | The name of the IP to SGT mapping |
 # | description | String | False | Description |
-# | deploy_to | String | False | Mandatory unless `mapping_group` is set or unless `deploy_type` is `ALL` |
+# | deploy_to | String | False | Mandatory unless `mapping_group` is set or unless `deploy_type` is `ALL`; name of the referenced network device instead of its ID (if `deploy_type` is `ND`); name of the referenced network device group instead of its ID (if `deploy_type` is `NDG`) |
 # | deploy_type | String | False | Deploy Type |
 # | host_name | String | False | Mandatory if `host_ip` is empty |
 # | host_ip | String | False | Mandatory if `host_name` is empty |
@@ -322,7 +322,7 @@ resource "ise_trustsec_ip_to_sgt_mapping" "trustsec_ip_to_sgt_mapping" {
 
   name          = try(each.value.name, null)
   description   = try(each.value.description, null)
-  deploy_to     = try(each.value.deploy_to, null)
+  deploy_to     = try(each.value.deploy_to, null) != null && !can(regex(local.id_regexp, each.value.deploy_to)) && try(each.value.deploy_type, null) == "ND" ? local.network_device_ids[each.value.deploy_to] : try(each.value.deploy_to, null) != null && !can(regex(local.id_regexp, each.value.deploy_to)) && try(each.value.deploy_type, null) == "NDG" ? local.network_device_group_ids[each.value.deploy_to] : try(each.value.deploy_to, null)
   deploy_type   = try(each.value.deploy_type, null)
   host_name     = try(each.value.host_name, null)
   host_ip       = try(each.value.host_ip, null)
@@ -339,7 +339,7 @@ resource "ise_trustsec_ip_to_sgt_mapping" "trustsec_ip_to_sgt_mapping" {
 # |--------------|------|----------|-------------|
 # | name | String | True | The name of the IP to SGT mapping Group |
 # | description | String | False | Description |
-# | deploy_to | String | False | Mandatory unless `deploy_type` is `ALL` |
+# | deploy_to | String | False | Mandatory unless `deploy_type` is `ALL`; name of the referenced network device instead of its ID (if `deploy_type` is `ND`); name of the referenced network device group instead of its ID (if `deploy_type` is `NDG`) |
 # | deploy_type | String | True | Deploy Type |
 # | sgt | String | True | Trustsec Security Group ID |
 # | sgt_name | String | False | Name of the referenced trustsec security group, alternative to `sgt` |
@@ -363,7 +363,7 @@ resource "ise_trustsec_ip_to_sgt_mapping_group" "trustsec_ip_to_sgt_mapping_grou
 
   name        = try(each.value.name, null)
   description = try(each.value.description, null)
-  deploy_to   = try(each.value.deploy_to, null)
+  deploy_to   = try(each.value.deploy_to, null) != null && !can(regex(local.id_regexp, each.value.deploy_to)) && try(each.value.deploy_type, null) == "ND" ? local.network_device_ids[each.value.deploy_to] : try(each.value.deploy_to, null) != null && !can(regex(local.id_regexp, each.value.deploy_to)) && try(each.value.deploy_type, null) == "NDG" ? local.network_device_group_ids[each.value.deploy_to] : try(each.value.deploy_to, null)
   deploy_type = try(each.value.deploy_type, null)
   sgt         = try(each.value.sgt, null) != null ? each.value.sgt : try(each.value.sgt_name, null) != null ? local.trustsec_security_group_ids[each.value.sgt_name] : null
 }

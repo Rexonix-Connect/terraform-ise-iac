@@ -1,0 +1,37 @@
+
+locals {
+  # Sections and resources of the YAML model
+  yaml_sections = {
+{% for section, names in sections.items() %}
+    {{ section }} = {{ names }}
+{% endfor %}
+  }
+
+  # YAML keys of each resource and of the items of its nested lists
+  yaml_keys = {
+{% for path, names in keys.items() %}
+    "{{ path }}" = {{ names }}
+{% endfor %}
+  }
+
+  # YAML keys the module does not know, usually typos. Values under unknown
+  # keys would be ignored silently, so they stop the plan.
+  unknown_yaml_keys = flatten([
+    [for s in keys(try(local.ise, {})) : "ise.${s}" if !contains(keys(local.yaml_sections), s)],
+    [for s, r in try(local.ise, {}) : [for k in try(keys(r), []) : "ise.${s}.${k}" if !contains(local.yaml_sections[s], k)] if contains(keys(local.yaml_sections), s)],
+    [for s in keys(try(local.model.defaults.ise, {})) : "defaults.ise.${s}" if !contains(keys(local.yaml_sections), s)],
+    [for s, r in try(local.model.defaults.ise, {}) : [for k in try(keys(r), []) : "defaults.ise.${s}.${k}" if !contains(local.yaml_sections[s], k)] if contains(keys(local.yaml_sections), s)],
+{% for check in checks %}
+    {{ check }},
+{% endfor %}
+  ])
+}
+
+resource "terraform_data" "yaml_validation" {
+  lifecycle {
+    precondition {
+      condition     = length(local.unknown_yaml_keys) == 0
+      error_message = "Unknown YAML keys (typos, or not supported by this module version): ${join(", ", slice(local.unknown_yaml_keys, 0, min(length(local.unknown_yaml_keys), 20)))}${length(local.unknown_yaml_keys) > 20 ? " and ${length(local.unknown_yaml_keys) - 20} more" : ""}"
+    }
+  }
+}

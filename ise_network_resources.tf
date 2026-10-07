@@ -136,6 +136,39 @@ resource "ise_network_device" "network_device" {
   trustsec_coa_source_host                                    = try(each.value.trustsec_coa_source_host, null)
 }
 
+
+#
+# ------------------------------------------------------------------
+# NETWORK DEVICE REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network device objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_device_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "ND"]],
+    [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "ND"]],
+  ])))
+  network_device_managed_names   = [for item in local.network_device : item.name]
+  network_device_unmanaged_names = [for n in local.network_device_referenced_names : n if !contains(local.network_device_managed_names, n)]
+}
+
+data "ise_network_device" "network_device" {
+  for_each = toset(local.network_device_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_device_lookup_ids = { for k, v in data.ise_network_device.network_device : k => v.id }
+  network_device_ids = merge(
+    local.network_device_lookup_ids,
+    { for k, v in ise_network_device.network_device : k => v.id },
+  )
+}
+
 #
 # ==================================================================
 # NETWORK DEVICE GROUP
@@ -167,4 +200,37 @@ resource "ise_network_device_group" "network_device_group" {
   name        = try(each.value.name, null)
   description = try(each.value.description, null)
   root_group  = try(each.value.root_group, null)
+}
+
+
+#
+# ------------------------------------------------------------------
+# NETWORK DEVICE GROUP REFERENCES
+# ------------------------------------------------------------------
+#
+# Other objects can refer to network device group objects by name. Names are
+# resolved to IDs of objects managed by this module, or looked up in ISE.
+#
+
+locals {
+  network_device_group_referenced_names = distinct(compact(flatten([
+    [for item in local.trustsec_ip_to_sgt_mapping : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "NDG"]],
+    [for item in local.trustsec_ip_to_sgt_mapping_group : [for v0 in [item] : try(v0.deploy_to, null) if !can(regex(local.id_regexp, v0.deploy_to)) && try(v0.deploy_type, null) == "NDG"]],
+  ])))
+  network_device_group_managed_names   = [for item in local.network_device_group : item.name]
+  network_device_group_unmanaged_names = [for n in local.network_device_group_referenced_names : n if !contains(local.network_device_group_managed_names, n)]
+}
+
+data "ise_network_device_group" "network_device_group" {
+  for_each = toset(local.network_device_group_unmanaged_names)
+
+  name = each.key
+}
+
+locals {
+  network_device_group_lookup_ids = { for k, v in data.ise_network_device_group.network_device_group : k => v.id }
+  network_device_group_ids = merge(
+    local.network_device_group_lookup_ids,
+    { for k, v in ise_network_device_group.network_device_group : k => v.id },
+  )
 }
