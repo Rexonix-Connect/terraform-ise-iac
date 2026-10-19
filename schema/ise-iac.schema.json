@@ -381,7 +381,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -474,7 +484,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -567,7 +587,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -660,7 +690,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -751,7 +791,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -1197,7 +1247,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -1290,7 +1350,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -1383,7 +1453,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -1476,7 +1556,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -1567,7 +1657,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -1973,7 +2073,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -2066,7 +2176,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -2159,7 +2279,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -2252,7 +2382,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -2343,7 +2483,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -2756,7 +2906,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -2849,7 +3009,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -2942,7 +3112,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -3035,7 +3215,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -3126,7 +3316,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -3550,7 +3750,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -3643,7 +3853,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -3736,7 +3956,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -3829,7 +4059,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -3920,7 +4160,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -4310,7 +4560,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -4403,7 +4663,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -4496,7 +4766,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -4589,7 +4869,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -4680,7 +4970,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -7134,7 +7434,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -7227,7 +7537,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -7320,7 +7640,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -7413,7 +7743,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -7504,7 +7844,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -7950,7 +8300,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -8043,7 +8403,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -8136,7 +8506,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -8229,7 +8609,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -8320,7 +8710,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -8726,7 +9126,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -8819,7 +9229,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -8912,7 +9332,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -9005,7 +9435,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -9096,7 +9536,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -9509,7 +9959,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -9602,7 +10062,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -9695,7 +10165,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -9788,7 +10268,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -9879,7 +10369,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -10303,7 +10803,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -10396,7 +10906,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -10489,7 +11009,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -10582,7 +11112,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -10673,7 +11213,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
@@ -11220,7 +11770,17 @@
                                   "notEquals",
                                   "notIn",
                                   "notStartsWith",
-                                  "startsWith"
+                                  "startsWith",
+                                  "macContains",
+                                  "macEndsWith",
+                                  "macEquals",
+                                  "macIn",
+                                  "macNotContains",
+                                  "macNotEndsWith",
+                                  "macNotEquals",
+                                  "macNotIn",
+                                  "macNotStartsWith",
+                                  "macStartsWith"
                                 ],
                                 "description": "Equality operator"
                               },
@@ -11313,7 +11873,17 @@
                                         "notEquals",
                                         "notIn",
                                         "notStartsWith",
-                                        "startsWith"
+                                        "startsWith",
+                                        "macContains",
+                                        "macEndsWith",
+                                        "macEquals",
+                                        "macIn",
+                                        "macNotContains",
+                                        "macNotEndsWith",
+                                        "macNotEquals",
+                                        "macNotIn",
+                                        "macNotStartsWith",
+                                        "macStartsWith"
                                       ],
                                       "description": "Equality operator"
                                     },
@@ -11406,7 +11976,17 @@
                                               "notEquals",
                                               "notIn",
                                               "notStartsWith",
-                                              "startsWith"
+                                              "startsWith",
+                                              "macContains",
+                                              "macEndsWith",
+                                              "macEquals",
+                                              "macIn",
+                                              "macNotContains",
+                                              "macNotEndsWith",
+                                              "macNotEquals",
+                                              "macNotIn",
+                                              "macNotStartsWith",
+                                              "macStartsWith"
                                             ],
                                             "description": "Equality operator"
                                           },
@@ -11499,7 +12079,17 @@
                                                     "notEquals",
                                                     "notIn",
                                                     "notStartsWith",
-                                                    "startsWith"
+                                                    "startsWith",
+                                                    "macContains",
+                                                    "macEndsWith",
+                                                    "macEquals",
+                                                    "macIn",
+                                                    "macNotContains",
+                                                    "macNotEndsWith",
+                                                    "macNotEquals",
+                                                    "macNotIn",
+                                                    "macNotStartsWith",
+                                                    "macStartsWith"
                                                   ],
                                                   "description": "Equality operator"
                                                 },
@@ -11590,7 +12180,17 @@
                                                           "notEquals",
                                                           "notIn",
                                                           "notStartsWith",
-                                                          "startsWith"
+                                                          "startsWith",
+                                                          "macContains",
+                                                          "macEndsWith",
+                                                          "macEquals",
+                                                          "macIn",
+                                                          "macNotContains",
+                                                          "macNotEndsWith",
+                                                          "macNotEquals",
+                                                          "macNotIn",
+                                                          "macNotStartsWith",
+                                                          "macStartsWith"
                                                         ],
                                                         "description": "Equality operator"
                                                       },
